@@ -43,8 +43,10 @@ class DatabaseProvider {
       debugPrint('数据库版本: ${Environment.databaseVersion}');
       debugPrint('环境: ${Environment.isDevelopment ? '开发' : '生产'}');
       
-      if (Environment.shouldRecreateDatabase) {
-        debugPrint('开发环境：删除现有数据库');
+      // 检查是否需要重新创建数据库
+      final shouldRecreate = await Environment.shouldRecreateDatabase;
+      if (shouldRecreate) {
+        debugPrint('开发环境：检测到表结构变化，删除现有数据库');
         await deleteDatabase(path);
       }
       
@@ -53,7 +55,9 @@ class DatabaseProvider {
         version: Environment.databaseVersion,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
-        onDowngrade: onDatabaseDowngradeDelete,
+        onDowngrade: Environment.isDevelopment 
+            ? onDatabaseDowngradeDelete 
+            : _onDowngrade,
       );
       
       // 检查数据库表
@@ -151,7 +155,7 @@ class DatabaseProvider {
           updateTime INTEGER NOT NULL
         )
       ''');
-      debugPrint('班次类型表创建成功');
+      debugPrint('数据库表创建完成');
     } catch (e) {
       debugPrint('创建数据库表失败: $e');
       rethrow;
@@ -162,26 +166,38 @@ class DatabaseProvider {
     debugPrint('升级数据库，从版本 $oldVersion 到 $newVersion');
     try {
       if (oldVersion < 103) {
-        debugPrint('执行版本 103 的升级...');
-        // 创建班次类型表
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS shift_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            startTime TEXT,
-            endTime TEXT,
-            color INTEGER NOT NULL,
-            isPreset INTEGER NOT NULL DEFAULT 0,
-            isRestDay INTEGER NOT NULL DEFAULT 0,
-            updateTime INTEGER NOT NULL
-          )
-        ''');
-        debugPrint('班次类型表创建成功');
+        // 在这里添加数据迁移逻辑
+        await _migrateToVersion103(db);
       }
+      // 在这里添加未来版本的迁移逻辑
     } catch (e) {
       debugPrint('数据库升级失败: $e');
       rethrow;
     }
+  }
+
+  Future<void> _onDowngrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint('降级数据库，从版本 $oldVersion 到 $newVersion');
+    // 在生产环境中，我们应该提供向下兼容的迁移方案
+    // 这里可以根据需要实现具体的降级逻辑
+  }
+
+  Future<void> _migrateToVersion103(Database db) async {
+    debugPrint('执行版本 103 的升级...');
+    // 创建班次类型表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS shift_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        startTime TEXT,
+        endTime TEXT,
+        color INTEGER NOT NULL,
+        isPreset INTEGER NOT NULL DEFAULT 0,
+        isRestDay INTEGER NOT NULL DEFAULT 0,
+        updateTime INTEGER NOT NULL
+      )
+    ''');
+    debugPrint('版本 103 升级完成');
   }
 
   Future<void> close() async {
