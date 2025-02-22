@@ -22,28 +22,42 @@ plugins {
     id("org.jetbrains.kotlin.android") version "1.9.22" apply false
 }
 
+// 全局仓库配置
+@Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+        maven { 
+            url = uri("https://storage.googleapis.com/download.flutter.io")
+            content {
+                includeGroup("io.flutter")
+            }
+        }
+        maven { 
+            url = uri("https://dl.google.com/dl/android/maven2")
+            content {
+                includeGroupByRegex("androidx.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.android.*")
+            }
+        }
     }
 }
 
 include(":app")
 
 // Flutter plugins
-val flutterProjectRoot = rootDir.parentFile
-val plugins = File("$flutterProjectRoot/.flutter-plugins")
+val flutterProjectRoot: File = rootDir.parentFile
+val plugins: File = File("$flutterProjectRoot/.flutter-plugins")
 if (plugins.exists()) {
-    plugins.readLines().forEach { line ->
+    plugins.readLines().forEach { line: String ->
         if (line.isNotEmpty() && line.contains('=')) {
             try {
-                val parts = line.split('=')
+                val parts: List<String> = line.split('=')
                 if (parts.size >= 2) {
-                    val name = parts[0].trim()
-                    val path = parts[1].trim()
+                    val name: String = parts[0].trim()
+                    val path: String = parts[1].trim()
                     if (name.isNotEmpty() && path.isNotEmpty()) {
                         val pluginProject = File(path, "android")
                         if (pluginProject.exists()) {
