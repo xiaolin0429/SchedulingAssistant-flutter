@@ -26,7 +26,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
         signingConfig = signingConfigs.getByName("debug")
@@ -46,11 +46,11 @@ android {
 }
 
 dependencies {
-    implementation("androidx.annotation:annotation:1.7.1")
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
 
 flutter {
