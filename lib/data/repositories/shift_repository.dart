@@ -5,6 +5,7 @@ import '../models/shift.dart';
 import '../models/monthly_statistics.dart';
 import '../models/shift_type.dart';
 import 'base_repository.dart';
+import 'package:flutter/foundation.dart';
 
 /// 班次数据仓库
 class ShiftRepository implements BaseRepository<Shift> {
@@ -20,54 +21,95 @@ class ShiftRepository implements BaseRepository<Shift> {
 
   /// 根据日期获取班次
   Future<Shift?> getShiftByDate(DateTime date) async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(date);
-    return await _shiftDao.getShiftByDate(dateStr);
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      final shift = await _shiftDao.getShiftByDate(dateStr);
+      if (shift == null) return null;
+      
+      // 验证班次类型是否存在
+      try {
+        // 访问班次类型的属性以触发可能的错误
+        shift.type.name;
+        return shift;
+      } catch (e) {
+        debugPrint('班次的类型已被删除: ${shift.type.id}');
+        // 返回带有默认类型的班次
+        return shift.copyWith(
+          type: ShiftType(
+            name: '已删除',
+            color: 0xFF808080, // 灰色
+            isRestDay: false,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('获取班次时发生错误: $e');
+      return null;
+    }
   }
 
   /// 获取指定月份的所有班次
   Future<List<Shift>> getShiftsByMonth(int year, int month) async {
-    final startDate = DateTime(year, month, 1);
-    final endDate = DateTime(year, month + 1, 0); // 月份的最后一天
-    return await _shiftDao.getShiftsByDateRange(
-      DateFormat('yyyy-MM-dd').format(startDate),
-      DateFormat('yyyy-MM-dd').format(endDate),
-    );
+    try {
+      final startDate = DateTime(year, month, 1);
+      final endDate = DateTime(year, month + 1, 0); // 月份的最后一天
+      final shifts = await _shiftDao.getShiftsByDateRange(
+        DateFormat('yyyy-MM-dd').format(startDate),
+        DateFormat('yyyy-MM-dd').format(endDate),
+      );
+      
+      // 处理每个班次的类型
+      return shifts.map((shift) {
+        try {
+          // 验证班次类型
+          shift.type.name;
+          return shift;
+        } catch (e) {
+          debugPrint('班次的类型已被删除: ${shift.type.id}');
+          // 返回带有默认类型的班次
+          return shift.copyWith(
+            type: ShiftType(
+              name: '已删除',
+              color: 0xFF808080, // 灰色
+              isRestDay: false,
+            ),
+          );
+        }
+      }).toList();
+    } catch (e) {
+      debugPrint('获取月度班次时发生错误: $e');
+      return [];
+    }
   }
 
   /// 获取月度统计数据
   Future<MonthlyStatistics> getMonthlyStatistics(int year, int month) async {
     final shifts = await getShiftsByMonth(year, month);
     
-    int dayShiftCount = 0;
-    int nightShiftCount = 0;
-    int restDayCount = 0;
+    // 按班次类型ID统计天数
+    final Map<int, int> typeCounts = {};
     int totalWorkHours = 0;
 
     for (final shift in shifts) {
-      if (shift.type.isRestDay) {
-        restDayCount++;
-      } else if (shift.type.startTimeOfDay != null) {
-        final hour = shift.type.startTimeOfDay!.hour;
-        if (hour >= 6 && hour < 18) {
-          dayShiftCount++;
-        } else {
-          nightShiftCount++;
-        }
-      }
+      if (shift.type.id == null) continue;
+      
+      // 统计班次类型天数
+      typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
 
-      if (shift.startTime != null && shift.endTime != null) {
-        final duration = shift.duration;
-        if (duration != null) {
-          totalWorkHours += duration.toInt();
-        }
+      // 统计工作时长
+      if (!shift.type.isRestDay && shift.duration != null) {
+        totalWorkHours += shift.duration!.toInt();
       }
     }
 
+    // 计算总工作天数（不包括休息日）
+    final totalWorkDays = shifts
+        .where((s) => !s.type.isRestDay)
+        .length;
+
     return MonthlyStatistics(
-      dayShiftCount: dayShiftCount,
-      nightShiftCount: nightShiftCount,
-      restDayCount: restDayCount,
-      totalWorkDays: dayShiftCount + nightShiftCount,
+      shiftTypeCounts: typeCounts,
+      totalWorkDays: totalWorkDays,
       totalWorkHours: totalWorkHours,
     );
   }

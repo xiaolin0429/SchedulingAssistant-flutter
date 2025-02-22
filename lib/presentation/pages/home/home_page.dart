@@ -107,11 +107,14 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildShiftTypeCount('早班', state.monthlyStatistics?.dayShiftCount ?? 0, Colors.green),
-                      _buildShiftTypeCount('夜班', state.monthlyStatistics?.nightShiftCount ?? 0, Colors.blue),
-                      _buildShiftTypeCount('休息', state.monthlyStatistics?.restDayCount ?? 0, Colors.orange),
-                    ],
+                    children: state.availableShiftTypes?.map((type) {
+                      final count = state.monthlyStatistics?.getTypeCount(type.id ?? 0) ?? 0;
+                      return _buildShiftTypeCount(
+                        type.name,
+                        count,
+                        type.colorValue,
+                      );
+                    }).toList() ?? [],
                   ),
                 ),
                 // 日历视图
