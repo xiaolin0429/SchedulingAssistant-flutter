@@ -1,13 +1,7 @@
 /// 月度统计数据模型
 class MonthlyStatistics {
-  /// 早班天数
-  final int dayShiftCount;
-  
-  /// 夜班天数
-  final int nightShiftCount;
-  
-  /// 休息天数
-  final int restDayCount;
+  /// 按班次类型统计的天数
+  final Map<int, int> shiftTypeCounts;
   
   /// 总工作天数
   final int totalWorkDays;
@@ -16,9 +10,7 @@ class MonthlyStatistics {
   final int totalWorkHours;
 
   const MonthlyStatistics({
-    required this.dayShiftCount,
-    required this.nightShiftCount,
-    required this.restDayCount,
+    required this.shiftTypeCounts,
     this.totalWorkDays = 0,
     this.totalWorkHours = 0,
   });
@@ -26,31 +18,34 @@ class MonthlyStatistics {
   /// 从Map创建实例
   factory MonthlyStatistics.fromMap(Map<String, dynamic> map) {
     return MonthlyStatistics(
-      dayShiftCount: map['dayShiftCount'] as int,
-      nightShiftCount: map['nightShiftCount'] as int,
-      restDayCount: map['restDayCount'] as int,
+      shiftTypeCounts: Map<int, int>.from(map['shiftTypeCounts'] as Map),
+      totalWorkDays: map['totalWorkDays'] as int? ?? 0,
+      totalWorkHours: map['totalWorkHours'] as int? ?? 0,
     );
   }
 
   /// 转换为Map
   Map<String, dynamic> toMap() {
     return {
-      'dayShiftCount': dayShiftCount,
-      'nightShiftCount': nightShiftCount,
-      'restDayCount': restDayCount,
+      'shiftTypeCounts': shiftTypeCounts,
+      'totalWorkDays': totalWorkDays,
+      'totalWorkHours': totalWorkHours,
     };
   }
 
   /// 创建新实例
   MonthlyStatistics copyWith({
-    int? dayShiftCount,
-    int? nightShiftCount,
-    int? restDayCount,
+    Map<int, int>? shiftTypeCounts,
+    int? totalWorkDays,
+    int? totalWorkHours,
   }) {
     return MonthlyStatistics(
-      dayShiftCount: dayShiftCount ?? this.dayShiftCount,
-      nightShiftCount: nightShiftCount ?? this.nightShiftCount,
-      restDayCount: restDayCount ?? this.restDayCount,
+      shiftTypeCounts: shiftTypeCounts ?? this.shiftTypeCounts,
+      totalWorkDays: totalWorkDays ?? this.totalWorkDays,
+      totalWorkHours: totalWorkHours ?? this.totalWorkHours,
     );
   }
+
+  /// 获取指定班次类型的天数
+  int getTypeCount(int typeId) => shiftTypeCounts[typeId] ?? 0;
 } 

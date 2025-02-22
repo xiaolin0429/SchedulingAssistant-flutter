@@ -81,7 +81,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         
         // 获取选中日期的班次信息
         final selectedShift = await shiftRepository.getShiftByDate(event.date);
-        debugPrint('获取到的班次信息: ${selectedShift?.type.name ?? '无班次'}');
+        if (selectedShift != null) {
+          debugPrint('获取到的班次信息: ${selectedShift.type.name}');
+        } else {
+          debugPrint('该日期无班次信息');
+        }
         
         // 如果选择的是不同月份，需要重新加载月度数据
         if (event.date.month != currentState.selectedDate.month || 
@@ -97,7 +101,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             event.date.year,
             event.date.month,
           );
-          debugPrint('月度统计: 早班${stats.dayShiftCount}, 夜班${stats.nightShiftCount}, 休息${stats.restDayCount}');
+          debugPrint('月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
           
           emit(currentState.copyWith(
             selectedDate: event.date,
@@ -120,13 +124,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             todayShift: selectedShift,
             monthlyShifts: monthlyShifts,
           );
-          debugPrint('更新后的班次信息: ${newState.todayShift?.type.name ?? '无班次'}');
+          if (selectedShift != null) {
+            debugPrint('更新后的班次信息: ${selectedShift.type.name}');
+          }
           emit(newState);
           debugPrint('状态已更新(同月)');
         }
       } catch (e) {
         debugPrint('选择日期时发生错误: $e');
-        emit(HomeError(e.toString()));
+        // 错误时保持当前状态，只更新选中日期
+        emit(currentState.copyWith(
+          selectedDate: event.date,
+        ));
       }
     } else {
       debugPrint('当前不是HomeLoaded状态，无法处理选择日期事件');
@@ -194,7 +203,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           currentState.selectedDate.year,
           currentState.selectedDate.month,
         );
-        debugPrint('更新后月度统计: 早班${stats.dayShiftCount}, 夜班${stats.nightShiftCount}, 休息${stats.restDayCount}');
+        debugPrint('更新后月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
         
         emit(currentState.copyWith(
           todayShift: event.shift,
@@ -232,28 +241,43 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   Future<MonthlyStatistics> _calculateMonthlyStatistics(int year, int month) async {
     final shifts = await shiftRepository.getShiftsByMonth(year, month);
     
-    int dayShiftCount = 0;
-    int nightShiftCount = 0;
-    int restDayCount = 0;
+    // 使用Map统计各类型班次数量
+    final Map<int, int> typeCounts = {};
+    int totalWorkHours = 0;
     
     for (final shift in shifts) {
-      if (shift.type.isRestDay) {
-        restDayCount++;
-      } else if (shift.type.startTimeOfDay != null) {
-        // 简单判断：如果开始时间在6-18点之间，认为是早班
-        final hour = shift.type.startTimeOfDay!.hour;
-        if (hour >= 6 && hour < 18) {
-          dayShiftCount++;
-        } else {
-          nightShiftCount++;
+      try {
+        if (shift.type.id == null) continue;
+        
+        // 统计班次类型数量
+        typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
+        
+        // 统计工作时长
+        if (!shift.type.isRestDay && shift.duration != null) {
+          totalWorkHours += shift.duration!.toInt();
         }
+      } catch (e) {
+        debugPrint('统计班次时出错（可能是已删除的班次类型）: ${shift.type.id}');
+        // 对于已删除的班次类型，仍然计入统计，但使用特殊的ID（-1）标记
+        typeCounts[-1] = (typeCounts[-1] ?? 0) + 1;
       }
     }
     
+    // 计算总工作天数（不包括休息日）
+    final totalWorkDays = shifts
+        .where((s) {
+          try {
+            return !s.type.isRestDay;
+          } catch (e) {
+            return true; // 对于已删除的班次类型，默认计入工作天数
+          }
+        })
+        .length;
+    
     return MonthlyStatistics(
-      dayShiftCount: dayShiftCount,
-      nightShiftCount: nightShiftCount,
-      restDayCount: restDayCount,
+      shiftTypeCounts: typeCounts,
+      totalWorkDays: totalWorkDays,
+      totalWorkHours: totalWorkHours,
     );
   }
 

@@ -1,6 +1,7 @@
 import '../models/shift_type.dart';
 import '../repositories/shift_type_repository.dart';
 import '../../core/di/injection_container.dart';
+import 'package:flutter/foundation.dart';
 
 /// 班次模型
 class Shift {
@@ -43,9 +44,24 @@ class Shift {
   /// 从Map创建实例
   static Future<Shift> fromMap(Map<String, dynamic> map) async {
     final shiftTypeRepository = getIt<ShiftTypeRepository>();
-    final shiftType = await shiftTypeRepository.getById(map['shiftTypeId'] as int);
+    final shiftTypeId = map['shiftTypeId'] as int;
+    ShiftType? shiftType;
+    
+    try {
+      shiftType = await shiftTypeRepository.getById(shiftTypeId);
+    } catch (e) {
+      debugPrint('获取班次类型失败: $e');
+    }
+
+    // 如果找不到班次类型，使用默认的"已删除"类型
     if (shiftType == null) {
-      throw Exception('ShiftType not found with id: ${map['shiftTypeId']}');
+      debugPrint('班次类型已被删除: $shiftTypeId，使用默认类型');
+      shiftType = ShiftType(
+        id: -1,  // 使用-1表示已删除的类型
+        name: '已删除',
+        color: 0xFF808080, // 灰色
+        isRestDay: false,
+      );
     }
     
     return Shift(
