@@ -91,20 +91,32 @@ class ShiftRepository implements BaseRepository<Shift> {
     int totalWorkHours = 0;
 
     for (final shift in shifts) {
-      if (shift.type.id == null) continue;
-      
-      // 统计班次类型天数
-      typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
+      try {
+        if (shift.type.id == null) continue;
+        
+        // 统计班次类型天数
+        typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
 
-      // 统计工作时长
-      if (!shift.type.isRestDay && shift.duration != null) {
-        totalWorkHours += shift.duration!.toInt();
+        // 统计工作时长
+        if (!shift.type.isRestDay && shift.duration != null) {
+          totalWorkHours += shift.duration!.toInt();
+        }
+      } catch (e) {
+        debugPrint('统计班次时出错（可能是已删除的班次类型）');
+        // 对于已删除的班次类型，仍然计入统计，但使用特殊的ID（-1）标记
+        typeCounts[-1] = (typeCounts[-1] ?? 0) + 1;
       }
     }
 
     // 计算总工作天数（不包括休息日）
     final totalWorkDays = shifts
-        .where((s) => !s.type.isRestDay)
+        .where((s) {
+          try {
+            return !s.type.isRestDay;
+          } catch (e) {
+            return true; // 对于已删除的班次类型，默认计入工作天数
+          }
+        })
         .length;
 
     return MonthlyStatistics(
@@ -213,4 +225,4 @@ class ShiftRepository implements BaseRepository<Shift> {
   void dispose() {
     _shiftController.close();
   }
-} 
+}

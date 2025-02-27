@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/di/injection_container.dart' as di;
+import '../../presentation/blocs/statistics/statistics_bloc.dart';
+import '../../presentation/blocs/statistics/statistics_event.dart';
 import 'home/home_page.dart';
 import 'shift_types/shift_types_page.dart';
 import 'alarm/alarm_page.dart';
@@ -15,11 +19,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   
+  // 页面列表
   final List<Widget> _pages = [
     const HomePage(),
     const ShiftTypesPage(),
     const AlarmPage(),
-    const StatisticsPage(),
+    // 使用BlocProvider包装StatisticsPage
+    BlocProvider<StatisticsBloc>(
+      create: (_) => di.getIt<StatisticsBloc>(),
+      child: const StatisticsPage(),
+    ),
     const ProfilePage(),
   ];
 
@@ -62,4 +71,4 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-} 
+}

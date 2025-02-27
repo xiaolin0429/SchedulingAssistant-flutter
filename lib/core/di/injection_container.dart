@@ -9,6 +9,7 @@ import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/settings/settings_bloc.dart';
 import '../../presentation/blocs/shift/shift_bloc.dart';
 import '../../presentation/blocs/shift_type/shift_type_bloc.dart';
+import 'statistics_injection.dart';
 
 final getIt = GetIt.instance;
 
@@ -59,4 +60,7 @@ Future<void> initDependencies() async {
   getIt.registerFactory<ShiftTypeBloc>(
     () => ShiftTypeBloc(getIt<ShiftTypeRepository>()),
   );
-} 
+  
+  // 注册统计模块相关依赖
+  registerStatisticsDependencies(getIt);
+}
