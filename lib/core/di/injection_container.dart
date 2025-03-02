@@ -10,6 +10,10 @@ import '../../presentation/blocs/settings/settings_bloc.dart';
 import '../../presentation/blocs/shift/shift_bloc.dart';
 import '../../presentation/blocs/shift_type/shift_type_bloc.dart';
 import 'statistics_injection.dart';
+import '../../domain/services/settings_service.dart';
+import '../../domain/services/backup_service.dart';
+import '../../presentation/blocs/backup/backup_bloc.dart';
+import '../../presentation/blocs/statistics/statistics_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -63,4 +67,13 @@ Future<void> initDependencies() async {
   
   // 注册统计模块相关依赖
   registerStatisticsDependencies(getIt);
+
+  // Services
+  getIt.registerLazySingleton<SettingsService>(
+    () => SettingsService(getIt<SettingsRepository>()),
+  );
+  getIt.registerLazySingleton<BackupService>(() => BackupService());
+
+  // Blocs
+  getIt.registerFactory<BackupBloc>(() => BackupBloc(getIt()));
 }

@@ -33,14 +33,12 @@ class SettingsRepository {
   }
 
   /// 语言设置
-  Future<void> setLanguage(String value) async {
-    await _prefs.setString(_keyLanguage, value);
+  Future<void> setLanguage(String languageCode) async {
+    await _prefs.setString(_keyLanguage, languageCode);
     _settingsController.add(null);
   }
 
-  String getLanguage() {
-    return _prefs.getString(_keyLanguage) ?? 'zh';
-  }
+  String getLanguage() => _prefs.getString(_keyLanguage) ?? 'zh';
 
   /// 通知设置
   Future<void> setNotificationEnabled(bool value) async {
@@ -114,17 +112,14 @@ class SettingsRepository {
 
   /// 重置所有设置
   Future<void> resetSettings() async {
-    await Future.wait([
-      _prefs.remove(_keyThemeMode),
-      _prefs.remove(_keyLanguage),
-      _prefs.remove(_keyNotificationEnabled),
-      _prefs.remove(_keySyncWithSystemCalendar),
-      _prefs.remove(_keySyncWithCloud),
-      _prefs.remove(_keyDefaultShiftType),
-      _prefs.remove(_keyBackupEnabled),
-      _prefs.remove(_keyBackupInterval),
-      _prefs.remove(_keyLastBackupTime),
-    ]);
+    await _prefs.setString(_keyThemeMode, 'system');
+    await _prefs.setBool(_keyNotificationEnabled, true);
+    await _prefs.setBool(_keySyncWithSystemCalendar, false);
+    await _prefs.setInt(_keyDefaultShiftType, 0);
+    await _prefs.setBool(_keyBackupEnabled, false);
+    await _prefs.setInt(_keyBackupInterval, 7);
+    await _prefs.setInt(_keyLastBackupTime, DateTime.now().millisecondsSinceEpoch);
+    await _prefs.setString(_keyLanguage, 'zh');
     _settingsController.add(null);
   }
 

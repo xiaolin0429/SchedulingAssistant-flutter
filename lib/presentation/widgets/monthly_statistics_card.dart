@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/models/shift_type_enum.dart';
 
-class MonthlyStatisticsCard extends StatelessWidget {
+class MonthlyStatisticsCard extends StatefulWidget {
   final Map<String, dynamic> statistics;
 
   const MonthlyStatisticsCard({
@@ -11,10 +11,17 @@ class MonthlyStatisticsCard extends StatelessWidget {
   });
 
   @override
+  State<MonthlyStatisticsCard> createState() => _MonthlyStatisticsCardState();
+}
+
+class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
+  int _touchedIndex = -1;
+
+  @override
   Widget build(BuildContext context) {
-    final typeDistribution = statistics['typeDistribution'] as Map<ShiftType, int>? ?? {};
-    final totalDays = statistics['totalDays'] as int? ?? 0;
-    final totalHours = statistics['totalHours'] as int? ?? 0;
+    final typeDistribution = widget.statistics['typeDistribution'] as Map<ShiftType, int>? ?? {};
+    final totalDays = widget.statistics['totalDays'] as int? ?? 0;
+    final totalHours = widget.statistics['totalHours'] as int? ?? 0;
 
     return Card(
       child: Padding(
@@ -62,6 +69,19 @@ class MonthlyStatisticsCard extends StatelessWidget {
                     sections: _buildPieSections(typeDistribution, totalDays),
                     sectionsSpace: 2,
                     centerSpaceRadius: 40,
+                    pieTouchData: PieTouchData(
+                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                        setState(() {
+                          if (!event.isInterestedForInteractions ||
+                              pieTouchResponse == null ||
+                              pieTouchResponse.touchedSection == null) {
+                            _touchedIndex = -1;
+                            return;
+                          }
+                          _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                        });
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -120,21 +140,31 @@ class MonthlyStatisticsCard extends StatelessWidget {
       Colors.purple,
     ];
 
-    return distribution.entries.map((entry) {
+    final List<PieChartSectionData> sections = [];
+    int i = 0;
+    
+    distribution.entries.forEach((entry) {
       final index = entry.key.index % colors.length;
       final percentage = (entry.value / total * 100).toStringAsFixed(1);
+      final isTouched = i == _touchedIndex;
+      final radius = isTouched ? 80.0 : 60.0; // 被点击的扇区半径更大
       
-      return PieChartSectionData(
-        color: colors[index],
-        value: entry.value.toDouble(),
-        title: '$percentage%',
-        radius: 80,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+      sections.add(
+        PieChartSectionData(
+          color: colors[index],
+          value: entry.value.toDouble(),
+          title: '$percentage%',
+          radius: radius,
+          titleStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       );
-    }).toList();
+      i++;
+    });
+    
+    return sections;
   }
 } 

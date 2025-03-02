@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/di/injection_container.dart' as di;
 import '../../presentation/blocs/statistics/statistics_bloc.dart';
 import '../../presentation/blocs/statistics/statistics_event.dart';
+import '../../core/localization/app_text.dart';
 import 'home/home_page.dart';
 import 'shift_types/shift_types_page.dart';
 import 'alarm/alarm_page.dart';
@@ -46,26 +47,26 @@ class _MainScreenState extends State<MainScreen> {
             _currentIndex = index;
           });
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '主页',
+            icon: const Icon(Icons.home),
+            label: 'home'.trOr(context, '主页'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: '班次',
+            icon: const Icon(Icons.calendar_today),
+            label: 'calendar'.trOr(context, '日历'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.alarm),
-            label: '闹钟',
+            icon: const Icon(Icons.alarm),
+            label: 'alarms'.trOr(context, '闹钟'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: '统计',
+            icon: const Icon(Icons.bar_chart),
+            label: 'statistics'.trOr(context, '统计'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '我的',
+            icon: const Icon(Icons.person),
+            label: 'me'.trOr(context, '我的'),
           ),
         ],
       ),

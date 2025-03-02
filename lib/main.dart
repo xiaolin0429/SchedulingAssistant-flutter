@@ -14,6 +14,8 @@ import 'presentation/blocs/settings/settings_state.dart';
 import 'presentation/blocs/shift_type/shift_type_bloc.dart';
 import 'presentation/blocs/shift_type/shift_type_event.dart';
 import 'presentation/pages/main_screen.dart';
+import 'core/localization/app_localizations.dart';
+import 'core/localization/app_text.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,9 +23,14 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -57,7 +64,8 @@ class MyApp extends StatelessWidget {
               themeMode: state.themeMode == 'dark' 
                 ? ThemeMode.dark 
                 : (state.themeMode == 'light' ? ThemeMode.light : ThemeMode.system),
-              localizationsDelegates: const [
+              localizationsDelegates: [
+                AppLocalizations.delegate,
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
@@ -66,7 +74,18 @@ class MyApp extends StatelessWidget {
                 Locale('zh', 'CN'),
                 Locale('en', 'US'),
               ],
-              locale: Locale(state.language),
+              locale: state.language == 'zh' ? const Locale('zh', 'CN') : const Locale('en', 'US'),
+              localeResolutionCallback: (locale, supportedLocales) {
+                debugPrint('系统区域设置: $locale');
+                for (var supportedLocale in supportedLocales) {
+                  if (supportedLocale.languageCode == locale?.languageCode) {
+                    debugPrint('使用匹配的区域设置: $supportedLocale');
+                    return supportedLocale;
+                  }
+                }
+                debugPrint('使用默认区域设置: ${supportedLocales.first}');
+                return supportedLocales.first;
+              },
               home: const MainScreen(),
             );
           }

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.schedule.assistant"
-    compileSdk = 34
+    compileSdk = 35
 
     ndkVersion = "28.0.13004108"
 

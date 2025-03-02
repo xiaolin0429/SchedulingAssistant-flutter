@@ -69,7 +69,7 @@ class SettingsService {
 
   // 语言设置
   Future<void> setLanguage(String languageCode) async {
-    if (!['zh_CN', 'en_US'].contains(languageCode)) {
+    if (!['zh', 'en'].contains(languageCode)) {
       throw Exception('不支持的语言');
     }
     await _settingsRepository.setLanguage(languageCode);
@@ -100,7 +100,7 @@ class SettingsService {
     }
     
     if (settings.containsKey('language') && 
-        !['zh_CN', 'en_US'].contains(settings['language'])) {
+        !['zh', 'en'].contains(settings['language'])) {
       throw Exception('不支持的语言');
     }
 

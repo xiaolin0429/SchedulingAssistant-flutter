@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'user_profile_edit_page.dart';
+import 'settings_page.dart';
+import 'data_management_page.dart';
+import 'help_feedback_page.dart';
+import 'about_page.dart';
+import '../../../core/localization/app_text.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -14,7 +20,12 @@ class ProfilePage extends StatelessWidget {
               margin: const EdgeInsets.all(16.0),
               child: ListTile(
                 onTap: () {
-                  // TODO: 实现编辑个人信息功能
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserProfileEditPage(),
+                    ),
+                  );
                 },
                 leading: CircleAvatar(
                   radius: 24,
@@ -25,14 +36,14 @@ class ProfilePage extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
-                title: const Text(
-                  '输入昵称',
-                  style: TextStyle(
+                title: AppText(
+                  'nickname',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                subtitle: const Text('输入简介'),
+                subtitle: AppText('bio'),
                 trailing: const Icon(Icons.chevron_right),
               ),
             ),
@@ -44,33 +55,53 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   _buildMenuItem(
                     icon: Icons.settings,
-                    title: '应用设置',
+                    titleKey: 'app_settings',
                     onTap: () {
-                      // TODO: 导航到应用设置页面
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsPage(),
+                        ),
+                      );
                     },
                   ),
                   const Divider(height: 1),
                   _buildMenuItem(
                     icon: Icons.cloud,
-                    title: '数据管理',
+                    titleKey: 'data_management',
                     onTap: () {
-                      // TODO: 导航到数据管理页面
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DataManagementPage(),
+                        ),
+                      );
                     },
                   ),
                   const Divider(height: 1),
                   _buildMenuItem(
                     icon: Icons.help_outline,
-                    title: '帮助与反馈',
+                    titleKey: 'help_feedback',
                     onTap: () {
-                      // TODO: 导航到帮助与反馈页面
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HelpFeedbackPage(),
+                        ),
+                      );
                     },
                   ),
                   const Divider(height: 1),
                   _buildMenuItem(
                     icon: Icons.info_outline,
-                    title: '关于',
+                    titleKey: 'about',
                     onTap: () {
-                      // TODO: 导航到关于页面
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AboutPage(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -84,13 +115,13 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildMenuItem({
     required IconData icon,
-    required String title,
+    required String titleKey,
     required VoidCallback onTap,
   }) {
     return ListTile(
       onTap: onTap,
       leading: Icon(icon, color: Colors.black54),
-      title: Text(title),
+      title: AppText(titleKey),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
     );
   }
