@@ -92,4 +92,14 @@ class BackupError extends SettingsState {
 
   @override
   List<Object> get props => [message];
+}
+
+/// 需要重启应用的状态
+class SettingsNeedRestart extends SettingsState {
+  final String message;
+
+  const SettingsNeedRestart({required this.message});
+
+  @override
+  List<Object> get props => [message];
 } 

@@ -50,6 +50,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       try {
         await _settingsRepository.setLanguage(event.languageCode);
         emit((state as SettingsLoaded).copyWith(language: event.languageCode));
+        
+        // 发出需要重启应用的信号
+        emit(const SettingsNeedRestart(message: '语言设置已更改，请重启应用以应用更改'));
       } catch (e) {
         emit(SettingsError(e.toString()));
       }
