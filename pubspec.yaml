@@ -24,6 +24,12 @@ dependencies:
   fl_chart: ^0.65.0
   intl: ^0.19.0
   flutter_colorpicker: ^1.0.3
+  image_picker: ^1.0.4
+  package_info_plus: ^4.2.0
+  url_launcher: ^6.1.14
+  share_plus: ^7.2.1
+  path_provider: ^2.1.1
+  flutter_file_dialog: ^3.0.2
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +38,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/i18n/

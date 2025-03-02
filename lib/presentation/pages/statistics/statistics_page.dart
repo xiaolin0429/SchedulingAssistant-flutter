@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 import '../../../data/models/shift_type.dart';
 import '../../blocs/statistics/statistics_bloc.dart';
 import '../../blocs/statistics/statistics_event.dart';
@@ -16,6 +17,8 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage> {
   DateTime _selectedMonth = DateTime.now();
+  int _touchedIndex = -1; // 添加跟踪被点击扇区的索引
+  int _touchedBarIndex = -1; // 添加跟踪被点击柱子的索引
 
   @override
   void initState() {
@@ -235,6 +238,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               sectionsSpace: 2,
                               centerSpaceRadius: 40,
                               startDegreeOffset: 180,
+                              pieTouchData: PieTouchData(
+                                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                  setState(() {
+                                    if (!event.isInterestedForInteractions ||
+                                        pieTouchResponse == null ||
+                                        pieTouchResponse.touchedSection == null) {
+                                      _touchedIndex = -1;
+                                      return;
+                                    }
+                                    _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                  });
+                                },
+                              ),
                             ),
                           ),
                   ),
@@ -301,75 +317,134 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     height: 200,
                     child: state.dailyWorkHours.isEmpty
                         ? const Center(child: Text('暂无数据'))
-                        : BarChart(
-                            BarChartData(
-                              alignment: BarChartAlignment.spaceAround,
-                              maxY: _calculateMaxY(state.dailyWorkHours),
-                              barTouchData: BarTouchData(
-                                enabled: true,
-                                touchTooltipData: BarTouchTooltipData(
-                                  tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
-                                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                    final date = state.dailyWorkHours.keys.elementAt(group.x.toInt());
-                                    final hours = state.dailyWorkHours[date];
-                                    return BarTooltipItem(
-                                      '$date\n${hours?.toStringAsFixed(1)}小时',
-                                      const TextStyle(color: Colors.white),
-                                    );
-                                  },
-                                ),
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      if (value.toInt() >= 0 && value.toInt() < state.dailyWorkHours.length) {
-                                        final date = state.dailyWorkHours.keys.elementAt(value.toInt());
-                                        final day = date.split('-').last;
-                                        return Text(
-                                          day,
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 10,
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Container(
+                              // 设置一个足够宽的容器，使柱状图可以横向滚动
+                              width: max(MediaQuery.of(context).size.width - 64, state.dailyWorkHours.length * 40.0),
+                              height: 200,
+                              padding: const EdgeInsets.only(top: 16, right: 16),
+                              child: BarChart(
+                                BarChartData(
+                                  alignment: BarChartAlignment.center,
+                                  maxY: _calculateMaxY(state.dailyWorkHours),
+                                  minY: 0,
+                                  groupsSpace: 12, // 增加柱子组之间的间距
+                                  barTouchData: BarTouchData(
+                                    enabled: true,
+                                    touchTooltipData: BarTouchTooltipData(
+                                      tooltipBgColor: Colors.black.withOpacity(0.9),
+                                      tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      tooltipMargin: 8,
+                                      tooltipRoundedRadius: 8,
+                                      maxContentWidth: 150,
+                                      rotateAngle: 0,
+                                      direction: TooltipDirection.top,
+                                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                        final date = state.dailyWorkHours.keys.elementAt(group.x.toInt());
+                                        final hours = state.dailyWorkHours[date];
+                                        // 格式化日期显示
+                                        final formattedDate = date.split('-').length > 2 
+                                            ? '${date.split('-')[1]}-${date.split('-')[2]}' 
+                                            : date;
+                                        return BarTooltipItem(
+                                          formattedDate,
+                                          const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
+                                          children: [
+                                            const TextSpan(
+                                              text: '\n',
+                                            ),
+                                            TextSpan(
+                                              text: '${hours?.toStringAsFixed(1)} 小时',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.normal,
+                                              ),
+                                            ),
+                                          ],
                                         );
-                                      }
-                                      return const Text('');
+                                      },
+                                      fitInsideHorizontally: true,
+                                      fitInsideVertically: true,
+                                    ),
+                                    touchCallback: (FlTouchEvent event, BarTouchResponse? touchResponse) {
+                                      // 添加触摸回调以增强交互性
+                                      setState(() {
+                                        if (event is FlPanEndEvent || event is FlTapUpEvent) {
+                                          // 手指抬起时，保持高亮状态
+                                          if (touchResponse != null && touchResponse.spot != null) {
+                                            _touchedBarIndex = touchResponse.spot!.touchedBarGroupIndex;
+                                          }
+                                        } else if (event is FlTapDownEvent || event is FlPanDownEvent) {
+                                          // 手指按下时，设置高亮
+                                          if (touchResponse != null && touchResponse.spot != null) {
+                                            _touchedBarIndex = touchResponse.spot!.touchedBarGroupIndex;
+                                          }
+                                        } else if (event is FlPointerExitEvent) {
+                                          // 指针离开时，取消高亮
+                                          _touchedBarIndex = -1;
+                                        }
+                                      });
                                     },
-                                    reservedSize: 30,
                                   ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      return Text(
-                                        '${value.toInt()}h',
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      );
-                                    },
-                                    reservedSize: 30,
+                                  titlesData: FlTitlesData(
+                                    show: true,
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          if (value.toInt() >= 0 && value.toInt() < state.dailyWorkHours.length) {
+                                            final date = state.dailyWorkHours.keys.elementAt(value.toInt());
+                                            final day = date.split('-').last;
+                                            return Text(
+                                              day,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 10,
+                                              ),
+                                            );
+                                          }
+                                          return const Text('');
+                                        },
+                                        reservedSize: 30,
+                                      ),
+                                    ),
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          return Text(
+                                            '${value.toInt()}h',
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                        reservedSize: 30,
+                                      ),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
                                   ),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
+                                  gridData: const FlGridData(
+                                    show: true,
+                                    horizontalInterval: 2,
+                                    drawVerticalLine: false,
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  barGroups: _buildBarGroups(state.dailyWorkHours),
                                 ),
                               ),
-                              gridData: const FlGridData(
-                                show: true,
-                                horizontalInterval: 2,
-                                drawVerticalLine: false,
-                              ),
-                              borderData: FlBorderData(show: false),
-                              barGroups: _buildBarGroups(state.dailyWorkHours),
                             ),
                           ),
                   ),
@@ -386,14 +461,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
   List<PieChartSectionData> _buildPieChartSections(StatisticsLoaded state) {
     final percentages = state.shiftTypePercentages;
     final sections = <PieChartSectionData>[];
-
+    
+    int i = 0;
     percentages.forEach((shiftType, percentage) {
+      final isTouched = i == _touchedIndex;
+      final radius = isTouched ? 80.0 : 60.0; // 被点击的扇区半径更大
+      
       sections.add(
         PieChartSectionData(
           value: percentage,
           color: shiftType.colorValue,
           title: '${percentage.toStringAsFixed(1)}%',
-          radius: 80,
+          radius: radius,
           titleStyle: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -401,6 +480,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
         ),
       );
+      i++;
     });
 
     return sections;
@@ -412,16 +492,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
     int index = 0;
 
     dailyWorkHours.forEach((date, hours) {
+      final isSelected = index == _touchedBarIndex;
       groups.add(
         BarChartGroupData(
           x: index++,
           barRods: [
             BarChartRodData(
               toY: hours,
-              color: Colors.blue,
-              width: 16,
+              color: isSelected ? Colors.blue.shade700 : Colors.blue,
+              width: isSelected ? 26 : 22, // 选中时增加宽度
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)), // 添加圆角
+              backDrawRodData: BackgroundBarChartRodData(
+                show: true,
+                toY: _calculateMaxY(dailyWorkHours),
+                color: Colors.grey.withOpacity(0.1),
+              ),
             ),
           ],
+          showingTooltipIndicators: isSelected ? [0] : [], // 选中时显示工具提示指示器
         ),
       );
     });
