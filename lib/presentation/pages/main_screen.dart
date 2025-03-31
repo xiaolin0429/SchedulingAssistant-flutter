@@ -19,7 +19,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  
+
   // 页面列表
   final List<Widget> _pages = [
     const HomePage(),
@@ -54,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.calendar_today),
-            label: 'calendar'.trOr(context, '日历'),
+            label: 'shifts'.trOr(context, '班次'),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.alarm),
