@@ -51,10 +51,10 @@
 
 <p align="center">
   <!-- 放置应用截图 -->
-  <img src="docs/screenshots/home.png" width="200" alt="主页"/>
-  <img src="docs/screenshots/shifts.png" width="200" alt="班次"/>
-  <img src="docs/screenshots/statistics.png" width="200" alt="统计"/>
-  <img src="docs/screenshots/settings.png" width="200" alt="设置"/>
+  <img src="docs/screenshots/home.png" width="388" alt="主页"/>
+  <img src="docs/screenshots/shifts.png" width="388" alt="班次"/>
+  <img src="docs/screenshots/statistics.png" width="387" alt="统计"/>
+  <img src="docs/screenshots/settings.png" width="386" alt="设置"/>
 </p>
 
 ## 技术架构
