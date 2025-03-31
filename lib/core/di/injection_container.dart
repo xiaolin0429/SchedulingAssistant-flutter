@@ -13,7 +13,6 @@ import 'statistics_injection.dart';
 import '../../domain/services/settings_service.dart';
 import '../../domain/services/backup_service.dart';
 import '../../presentation/blocs/backup/backup_bloc.dart';
-import '../../presentation/blocs/statistics/statistics_bloc.dart';
 
 final getIt = GetIt.instance;
 

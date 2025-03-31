@@ -4,7 +4,6 @@ import '../../blocs/settings/settings_bloc.dart';
 import '../../blocs/settings/settings_event.dart';
 import '../../blocs/settings/settings_state.dart';
 import '../../../core/localization/app_text.dart';
-import 'data_management_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
