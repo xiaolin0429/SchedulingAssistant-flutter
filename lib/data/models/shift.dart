@@ -46,7 +46,7 @@ class Shift {
     final shiftTypeRepository = getIt<ShiftTypeRepository>();
     final shiftTypeId = map['shiftTypeId'] as int;
     ShiftType? shiftType;
-    
+
     try {
       shiftType = await shiftTypeRepository.getById(shiftTypeId);
     } catch (e) {
@@ -57,13 +57,13 @@ class Shift {
     if (shiftType == null) {
       debugPrint('班次类型已被删除: $shiftTypeId，使用默认类型');
       shiftType = ShiftType(
-        id: -1,  // 使用-1表示已删除的类型
+        id: -1, // 使用-1表示已删除的类型
         name: '已删除',
         color: 0xFF808080, // 灰色
         isRestDay: false,
       );
     }
-    
+
     return Shift(
       id: map['id'] as int?,
       date: map['date'] as String,
@@ -126,7 +126,8 @@ class Shift {
 
     if (_compareTime(end, start) < 0) {
       // 跨天的情况
-      return (24 - start.hour - start.minute / 60) + (end.hour + end.minute / 60);
+      return (24 - start.hour - start.minute / 60) +
+          (end.hour + end.minute / 60);
     } else {
       return (end.hour - start.hour) + (end.minute - start.minute) / 60;
     }
@@ -136,7 +137,9 @@ class Shift {
   DateTime _parseTime(String time) {
     final parts = time.split(':');
     return DateTime(
-      2000, 1, 1,
+      2000,
+      1,
+      1,
       int.parse(parts[0]),
       int.parse(parts[1]),
     );
@@ -149,4 +152,4 @@ class Shift {
     }
     return a.minute.compareTo(b.minute);
   }
-} 
+}

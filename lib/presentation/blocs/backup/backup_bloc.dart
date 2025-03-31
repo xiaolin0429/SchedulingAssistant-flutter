@@ -8,9 +8,11 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
 
   BackupBloc(this._backupService) : super(const BackupInitial()) {
     on<LoadBackupInfo>(_onLoadBackupInfo);
+    on<LoadBackupList>(_onLoadBackupList);
     on<CreateBackup>(_onCreateBackup);
     on<ExportBackup>(_onExportBackup);
     on<RestoreFromLatestBackup>(_onRestoreFromLatestBackup);
+    on<RestoreFromSpecificBackup>(_onRestoreFromSpecificBackup);
     on<RestoreFromFile>(_onRestoreFromFile);
     on<ClearCache>(_onClearCache);
     on<ClearAllData>(_onClearAllData);
@@ -33,6 +35,19 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
     }
   }
 
+  Future<void> _onLoadBackupList(
+    LoadBackupList event,
+    Emitter<BackupState> emit,
+  ) async {
+    try {
+      emit(const BackupLoading());
+      final backupList = await _backupService.getAllBackups();
+      emit(BackupListLoaded(backupList));
+    } catch (e) {
+      emit(BackupError('加载备份列表失败: $e'));
+    }
+  }
+
   Future<void> _onCreateBackup(
     CreateBackup event,
     Emitter<BackupState> emit,
@@ -41,7 +56,7 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
       emit(const BackupLoading());
       await _backupService.createBackup();
       emit(const BackupSuccess('备份创建成功'));
-      
+
       // 重新加载备份信息
       final backupInfo = await _backupService.getBackupInfo();
       emit(BackupInfoLoaded(
@@ -62,7 +77,7 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
       emit(const BackupLoading());
       await _backupService.exportBackup();
       emit(const BackupSuccess('备份导出成功'));
-      
+
       // 重新加载备份信息
       final backupInfo = await _backupService.getBackupInfo();
       emit(BackupInfoLoaded(
@@ -85,6 +100,19 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
       emit(const RestoreSuccess('从最新备份恢复成功'));
     } catch (e) {
       emit(BackupError('从最新备份恢复失败: $e'));
+    }
+  }
+
+  Future<void> _onRestoreFromSpecificBackup(
+    RestoreFromSpecificBackup event,
+    Emitter<BackupState> emit,
+  ) async {
+    try {
+      emit(const BackupLoading());
+      await _backupService.restoreFromBackupFile(event.backupFilePath);
+      emit(const RestoreSuccess('恢复备份成功'));
+    } catch (e) {
+      emit(BackupError('恢复备份失败: $e'));
     }
   }
 
@@ -126,4 +154,4 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
       emit(BackupError('清除所有数据失败: $e'));
     }
   }
-} 
+}

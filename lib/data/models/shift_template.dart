@@ -1,4 +1,4 @@
-import 'shift_type_enum.dart';
+import 'shift_type.dart';
 
 class ShiftTemplate {
   final int? id;
@@ -22,29 +22,29 @@ class ShiftTemplate {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'name': name,
-    'startTime': startTime,
-    'endTime': endTime,
-    'color': color,
-    'isDefault': isDefault ? 1 : 0,
-    'updateTime': updateTime,
-    'type': type.toString(),
-  };
+        'id': id,
+        'name': name,
+        'startTime': startTime,
+        'endTime': endTime,
+        'color': color,
+        'isDefault': isDefault ? 1 : 0,
+        'updateTime': updateTime,
+        'type': type.name,
+      };
 
   factory ShiftTemplate.fromMap(Map<String, dynamic> map) => ShiftTemplate(
-    id: map['id'] as int?,
-    name: map['name'] as String,
-    startTime: map['startTime'] as String?,
-    endTime: map['endTime'] as String?,
-    color: map['color'] as int,
-    isDefault: (map['isDefault'] as int) == 1,
-    updateTime: map['updateTime'] as int,
-    type: ShiftType.values.firstWhere(
-      (e) => e.toString() == map['type'],
-      orElse: () => ShiftType.custom,
-    ),
-  );
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        startTime: map['startTime'] as String?,
+        endTime: map['endTime'] as String?,
+        color: map['color'] as int,
+        isDefault: (map['isDefault'] as int) == 1,
+        updateTime: map['updateTime'] as int,
+        type: ShiftType.presets.firstWhere(
+          (t) => t.name == map['type'],
+          orElse: () => ShiftType.presets[2], // 使用休息类型作为默认
+        ),
+      );
 
   ShiftTemplate copyWith({
     int? id,
@@ -67,4 +67,4 @@ class ShiftTemplate {
       type: type ?? this.type,
     );
   }
-} 
+}

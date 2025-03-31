@@ -163,7 +163,8 @@ class ShiftType {
 
     if (end.isBefore(start)) {
       // 跨天的情况
-      return (24 - start.hour - start.minute / 60) + (end.hour + end.minute / 60);
+      return (24 - start.hour - start.minute / 60) +
+          (end.hour + end.minute / 60);
     } else {
       return (end.hour - start.hour) + (end.minute - start.minute) / 60;
     }
@@ -173,7 +174,9 @@ class ShiftType {
   DateTime _parseTime(String time) {
     final parts = time.split(':');
     return DateTime(
-      2000, 1, 1,
+      2000,
+      1,
+      1,
       int.parse(parts[0]),
       int.parse(parts[1]),
     );

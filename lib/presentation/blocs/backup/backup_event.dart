@@ -12,6 +12,10 @@ class LoadBackupInfo extends BackupEvent {
   const LoadBackupInfo();
 }
 
+class LoadBackupList extends BackupEvent {
+  const LoadBackupList();
+}
+
 class CreateBackup extends BackupEvent {
   const CreateBackup();
 }
@@ -22,6 +26,15 @@ class ExportBackup extends BackupEvent {
 
 class RestoreFromLatestBackup extends BackupEvent {
   const RestoreFromLatestBackup();
+}
+
+class RestoreFromSpecificBackup extends BackupEvent {
+  final String backupFilePath;
+
+  const RestoreFromSpecificBackup(this.backupFilePath);
+
+  @override
+  List<Object?> get props => [backupFilePath];
 }
 
 class RestoreFromFile extends BackupEvent {
@@ -39,4 +52,4 @@ class ClearCache extends BackupEvent {
 
 class ClearAllData extends BackupEvent {
   const ClearAllData();
-} 
+}

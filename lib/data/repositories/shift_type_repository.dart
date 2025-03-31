@@ -81,4 +81,4 @@ class ShiftTypeRepository implements BaseRepository<ShiftType> {
   void dispose() {
     _shiftTypeController.close();
   }
-} 
+}

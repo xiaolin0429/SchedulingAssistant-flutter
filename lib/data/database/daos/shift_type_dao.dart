@@ -99,4 +99,4 @@ class ShiftTypeDao {
       rethrow;
     }
   }
-} 
+}

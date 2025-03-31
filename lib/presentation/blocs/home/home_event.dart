@@ -46,6 +46,23 @@ class SyncData extends HomeEvent {
 /// 显示备注对话框
 class ShowNoteDialog extends HomeEvent {
   const ShowNoteDialog();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// 保存班次备注
+class SaveNoteToShift extends HomeEvent {
+  final String note;
+  final Shift shift;
+
+  const SaveNoteToShift({
+    required this.note,
+    required this.shift,
+  });
+
+  @override
+  List<Object?> get props => [note, shift];
 }
 
 /// 开始排班
@@ -88,4 +105,4 @@ class LoadMonthlyStatistics extends HomeEvent {
 
   @override
   List<Object> get props => [year, month];
-} 
+}

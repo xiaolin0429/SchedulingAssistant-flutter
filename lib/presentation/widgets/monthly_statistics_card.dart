@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../data/models/shift_type_enum.dart';
+import '../../data/models/shift_type.dart';
 
 class MonthlyStatisticsCard extends StatefulWidget {
   final Map<String, dynamic> statistics;
@@ -19,7 +19,8 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final typeDistribution = widget.statistics['typeDistribution'] as Map<ShiftType, int>? ?? {};
+    final typeDistribution =
+        widget.statistics['typeDistribution'] as Map<ShiftType, int>? ?? {};
     final totalDays = widget.statistics['totalDays'] as int? ?? 0;
     final totalHours = widget.statistics['totalHours'] as int? ?? 0;
 
@@ -78,7 +79,8 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
                             _touchedIndex = -1;
                             return;
                           }
-                          _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                          _touchedIndex = pieTouchResponse
+                              .touchedSection!.touchedSectionIndex;
                         });
                       },
                     ),
@@ -142,13 +144,13 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
 
     final List<PieChartSectionData> sections = [];
     int i = 0;
-    
+
     distribution.entries.forEach((entry) {
-      final index = entry.key.index % colors.length;
+      final index = i % colors.length;
       final percentage = (entry.value / total * 100).toStringAsFixed(1);
       final isTouched = i == _touchedIndex;
       final radius = isTouched ? 80.0 : 60.0; // 被点击的扇区半径更大
-      
+
       sections.add(
         PieChartSectionData(
           color: colors[index],
@@ -164,7 +166,7 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
       );
       i++;
     });
-    
+
     return sections;
   }
-} 
+}

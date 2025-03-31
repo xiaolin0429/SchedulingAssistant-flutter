@@ -15,7 +15,7 @@ import 'presentation/blocs/shift_type/shift_type_bloc.dart';
 import 'presentation/blocs/shift_type/shift_type_event.dart';
 import 'presentation/pages/main_screen.dart';
 import 'core/localization/app_localizations.dart';
-import 'core/localization/app_text.dart';
+import 'core/themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,14 +56,13 @@ class _MyAppState extends State<MyApp> {
           if (state is SettingsLoaded) {
             return MaterialApp(
               title: '排班助手',
-              theme: ThemeData(
-                colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-                useMaterial3: true,
-              ),
-              darkTheme: ThemeData.dark(useMaterial3: true),
-              themeMode: state.themeMode == 'dark' 
-                ? ThemeMode.dark 
-                : (state.themeMode == 'light' ? ThemeMode.light : ThemeMode.system),
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: state.themeMode == 'dark'
+                  ? ThemeMode.dark
+                  : (state.themeMode == 'light'
+                      ? ThemeMode.light
+                      : ThemeMode.system),
               localizationsDelegates: [
                 AppLocalizations.delegate,
                 GlobalMaterialLocalizations.delegate,
@@ -74,7 +73,9 @@ class _MyAppState extends State<MyApp> {
                 Locale('zh', 'CN'),
                 Locale('en', 'US'),
               ],
-              locale: state.language == 'zh' ? const Locale('zh', 'CN') : const Locale('en', 'US'),
+              locale: state.language == 'zh'
+                  ? const Locale('zh', 'CN')
+                  : const Locale('en', 'US'),
               localeResolutionCallback: (locale, supportedLocales) {
                 debugPrint('系统区域设置: $locale');
                 for (var supportedLocale in supportedLocales) {

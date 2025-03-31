@@ -38,15 +38,16 @@ class HomePage extends StatelessWidget {
                   onSelected: (selectedType) {
                     if (!context.mounted) return;
                     context.read<HomeBloc>().add(
-                      UpdateTodayShift(
-                        Shift(
-                          date: DateFormat('yyyy-MM-dd').format(state.selectedDate),
-                          type: selectedType,
-                          startTime: selectedType.startTime,
-                          endTime: selectedType.endTime,
-                        ),
-                      ),
-                    );
+                          UpdateTodayShift(
+                            Shift(
+                              date: DateFormat('yyyy-MM-dd')
+                                  .format(state.selectedDate),
+                              type: selectedType,
+                              startTime: selectedType.startTime,
+                              endTime: selectedType.endTime,
+                            ),
+                          ),
+                        );
                   },
                 ),
               );
@@ -74,15 +75,17 @@ class HomePage extends StatelessWidget {
                       Text(
                         DateFormat('yyyy年MM月').format(state.selectedDate),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                       Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.calendar_today),
                             onPressed: () {
-                              context.read<HomeBloc>().add(const SyncCalendar());
+                              context
+                                  .read<HomeBloc>()
+                                  .add(const SyncCalendar());
                             },
                           ),
                           IconButton(
@@ -108,13 +111,16 @@ class HomePage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: state.availableShiftTypes?.map((type) {
-                      final count = state.monthlyStatistics?.getTypeCount(type.id ?? 0) ?? 0;
-                      return _buildShiftTypeCount(
-                        type.name,
-                        count,
-                        type.colorValue,
-                      );
-                    }).toList() ?? [],
+                          final count = state.monthlyStatistics
+                                  ?.getTypeCount(type.id ?? 0) ??
+                              0;
+                          return _buildShiftTypeCount(
+                            type.name,
+                            count,
+                            type.colorValue,
+                          );
+                        }).toList() ??
+                        [],
                   ),
                 ),
                 // 日历视图
@@ -163,12 +169,14 @@ class HomePage extends StatelessWidget {
                                       '班次类型: ${state.todayShift!.type.name}',
                                       textAlign: TextAlign.center,
                                     ),
-                                    if (state.todayShift!.startTime != null && state.todayShift!.endTime != null)
+                                    if (state.todayShift!.startTime != null &&
+                                        state.todayShift!.endTime != null)
                                       Text(
                                         '时间: ${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
                                         textAlign: TextAlign.center,
                                       ),
-                                    if (state.todayShift!.note?.isNotEmpty ?? false)
+                                    if (state.todayShift!.note?.isNotEmpty ??
+                                        false)
                                       Text(
                                         '备注: ${state.todayShift!.note}',
                                         textAlign: TextAlign.center,
@@ -184,35 +192,62 @@ class HomePage extends StatelessWidget {
                                   children: [
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        context.read<HomeBloc>().add(const ShowNoteDialog());
+                                        // 改为直接在UI层处理对话框显示
+                                        if (state.todayShift != null) {
+                                          // 先触发事件，表明用户点击了添加备注按钮
+                                          context
+                                              .read<HomeBloc>()
+                                              .add(const ShowNoteDialog());
+                                          // 然后直接在UI层显示对话框
+                                          _showNoteDialog(
+                                              context, state.todayShift!);
+                                        } else {
+                                          // 显示提示信息
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text('没有排班信息，无法添加备注'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
                                       },
-                                      icon: const Icon(Icons.note_add, size: 20),
+                                      icon:
+                                          const Icon(Icons.note_add, size: 20),
                                       label: const Text('添加备注'),
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       onPressed: () {
                                         // 只有点击开始排班按钮时，才触发排班对话框
-                                        context.read<HomeBloc>().add(const StartShift());
+                                        context
+                                            .read<HomeBloc>()
+                                            .add(const StartShift());
                                       },
                                       icon: const Icon(Icons.add, size: 20),
                                       label: const Text('开始排班'),
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        context.read<HomeBloc>().add(const NextShift());
+                                        context
+                                            .read<HomeBloc>()
+                                            .add(const NextShift());
                                       },
-                                      icon: const Icon(Icons.skip_next, size: 20),
+                                      icon:
+                                          const Icon(Icons.skip_next, size: 20),
                                       label: const Text('下一班次'),
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12),
                                       ),
                                     ),
                                   ],
@@ -249,6 +284,53 @@ class HomePage extends StatelessWidget {
         const SizedBox(width: 4),
         Text('$type: $count'),
       ],
+    );
+  }
+
+  // 显示添加备注对话框
+  void _showNoteDialog(BuildContext context, Shift shift) {
+    debugPrint('正在打开备注对话框，班次: ${shift.type.name}');
+    final controller = TextEditingController(text: shift.note);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('添加备注'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: '请输入备注内容',
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              debugPrint('取消添加备注');
+              Navigator.pop(context);
+            },
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              final noteText = controller.text;
+              debugPrint('保存备注: $noteText');
+              Navigator.pop(context);
+
+              // 使用新的事件来保存备注
+              if (context.mounted) {
+                context.read<HomeBloc>().add(
+                      SaveNoteToShift(
+                        note: noteText,
+                        shift: shift,
+                      ),
+                    );
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
     );
   }
 }

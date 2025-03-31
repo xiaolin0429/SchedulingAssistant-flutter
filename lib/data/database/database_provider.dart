@@ -38,36 +38,34 @@ class DatabaseProvider {
 
   Future<void> _initDatabase() async {
     try {
-      final String path = join(await getDatabasesPath(), Environment.databaseName);
+      final String path =
+          join(await getDatabasesPath(), Environment.databaseName);
       debugPrint('数据库路径: $path');
       debugPrint('数据库版本: ${Environment.databaseVersion}');
       debugPrint('环境: ${Environment.isDevelopment ? '开发' : '生产'}');
-      
+
       // 检查是否需要重新创建数据库
       final shouldRecreate = await Environment.shouldRecreateDatabase;
       if (shouldRecreate) {
         debugPrint('开发环境：检测到表结构变化，删除现有数据库');
         await deleteDatabase(path);
       }
-      
+
       _database = await openDatabase(
         path,
         version: Environment.databaseVersion,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
-        onDowngrade: Environment.isDevelopment 
-            ? onDatabaseDowngradeDelete 
+        onDowngrade: Environment.isDevelopment
+            ? onDatabaseDowngradeDelete
             : _onDowngrade,
       );
-      
+
       // 检查数据库表
-      final tables = await _database!.query('sqlite_master', 
-        columns: ['name'], 
-        where: 'type = ?', 
-        whereArgs: ['table']
-      );
+      final tables = await _database!.query('sqlite_master',
+          columns: ['name'], where: 'type = ?', whereArgs: ['table']);
       debugPrint('数据库中的表: ${tables.map((t) => t['name']).join(', ')}');
-      
+
       debugPrint('数据库初始化完成');
     } catch (e) {
       debugPrint('数据库初始化失败: $e');
@@ -206,4 +204,4 @@ class DatabaseProvider {
       _database = null;
     }
   }
-} 
+}

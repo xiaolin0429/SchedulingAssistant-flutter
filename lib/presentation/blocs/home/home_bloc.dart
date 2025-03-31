@@ -8,6 +8,7 @@ import '../../../data/models/monthly_statistics.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 
 /// 主页状态管理bloc
 /// 负责处理主页的数据加载、排班操作和统计信息
@@ -29,6 +30,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<SyncCalendar>(_onSyncCalendar);
     on<SyncData>(_onSyncData);
     on<ShowNoteDialog>(_onShowNoteDialog);
+    on<SaveNoteToShift>(_onSaveNoteToShift);
     on<StartShift>(_onStartShift);
     on<NextShift>(_onNextShift);
     on<UpdateTodayShift>(_onUpdateTodayShift);
@@ -37,27 +39,29 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 加载主页数据
-  Future<void> _onLoadHomeData(LoadHomeData event, Emitter<HomeState> emit) async {
+  Future<void> _onLoadHomeData(
+      LoadHomeData event, Emitter<HomeState> emit) async {
     try {
       emit(const HomeLoading());
       final selectedDate = event.date ?? DateTime.now();
-      
+
       // 初始化预设班次类型
       await shiftTypeRepository.initializePresetTypes();
       final shiftTypes = await shiftTypeRepository.getAll();
-      
+
       // 获取本月的排班数据
       final monthlyShifts = await shiftRepository.getShiftsByMonth(
         selectedDate.year,
         selectedDate.month,
       );
-      
+
       // 获取今天的排班
       final todayShift = await shiftRepository.getShiftByDate(selectedDate);
-      
+
       // 计算月度统计
-      final stats = await _calculateMonthlyStatistics(selectedDate.year, selectedDate.month);
-      
+      final stats = await _calculateMonthlyStatistics(
+          selectedDate.year, selectedDate.month);
+
       emit(HomeLoaded(
         selectedDate: selectedDate,
         todayShift: todayShift,
@@ -78,7 +82,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
       try {
         debugPrint('选择日期: ${event.date}');
-        
+
         // 获取选中日期的班次信息
         final selectedShift = await shiftRepository.getShiftByDate(event.date);
         if (selectedShift != null) {
@@ -86,9 +90,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         } else {
           debugPrint('该日期无班次信息');
         }
-        
+
         // 如果选择的是不同月份，需要重新加载月度数据
-        if (event.date.month != currentState.selectedDate.month || 
+        if (event.date.month != currentState.selectedDate.month ||
             event.date.year != currentState.selectedDate.year) {
           debugPrint('月份发生变化，重新加载月度数据');
           final monthlyShifts = await shiftRepository.getShiftsByMonth(
@@ -96,13 +100,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             event.date.month,
           );
           debugPrint('本月班次数量: ${monthlyShifts.length}');
-          
+
           final stats = await _calculateMonthlyStatistics(
             event.date.year,
             event.date.month,
           );
-          debugPrint('月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
-          
+          debugPrint(
+              '月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
+
           emit(currentState.copyWith(
             selectedDate: event.date,
             todayShift: selectedShift,
@@ -118,7 +123,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             event.date.month,
           );
           debugPrint('本月班次数量: ${monthlyShifts.length}');
-          
+
           final newState = currentState.copyWith(
             selectedDate: event.date,
             todayShift: selectedShift,
@@ -166,10 +171,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         // 获取下一天的日期
         final nextDay = currentState.selectedDate.add(const Duration(days: 1));
         debugPrint('切换到下一天: $nextDay');
-        
+
         final nextShift = await shiftRepository.getShiftByDate(nextDay);
         debugPrint('下一天的班次信息: ${nextShift?.type.name ?? '无班次'}');
-        
+
         emit(currentState.copyWith(
           selectedDate: nextDay,
           todayShift: nextShift,
@@ -185,26 +190,28 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 更新今日班次
-  Future<void> _onUpdateTodayShift(UpdateTodayShift event, Emitter<HomeState> emit) async {
+  Future<void> _onUpdateTodayShift(
+      UpdateTodayShift event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
         debugPrint('更新班次: ${event.shift.date}, 类型: ${event.shift.type.name}');
         await shiftRepository.upsertShift(event.shift);
-        
+
         // 重新加载月度数据以保持一致性
         final monthlyShifts = await shiftRepository.getShiftsByMonth(
           currentState.selectedDate.year,
           currentState.selectedDate.month,
         );
         debugPrint('更新后本月班次数量: ${monthlyShifts.length}');
-        
+
         final stats = await _calculateMonthlyStatistics(
           currentState.selectedDate.year,
           currentState.selectedDate.month,
         );
-        debugPrint('更新后月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
-        
+        debugPrint(
+            '更新后月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
+
         emit(currentState.copyWith(
           todayShift: event.shift,
           monthlyShifts: monthlyShifts,
@@ -229,7 +236,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
-        final stats = await _calculateMonthlyStatistics(event.year, event.month);
+        final stats =
+            await _calculateMonthlyStatistics(event.year, event.month);
         emit(currentState.copyWith(monthlyStatistics: stats));
       } catch (e) {
         emit(HomeError(e.toString()));
@@ -238,20 +246,21 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 计算月度统计信息
-  Future<MonthlyStatistics> _calculateMonthlyStatistics(int year, int month) async {
+  Future<MonthlyStatistics> _calculateMonthlyStatistics(
+      int year, int month) async {
     final shifts = await shiftRepository.getShiftsByMonth(year, month);
-    
+
     // 使用Map统计各类型班次数量
     final Map<int, int> typeCounts = {};
     int totalWorkHours = 0;
-    
+
     for (final shift in shifts) {
       try {
         if (shift.type.id == null) continue;
-        
+
         // 统计班次类型数量
         typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
-        
+
         // 统计工作时长
         if (!shift.type.isRestDay && shift.duration != null) {
           totalWorkHours += shift.duration!.toInt();
@@ -262,18 +271,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         typeCounts[-1] = (typeCounts[-1] ?? 0) + 1;
       }
     }
-    
+
     // 计算总工作天数（不包括休息日）
-    final totalWorkDays = shifts
-        .where((s) {
-          try {
-            return !s.type.isRestDay;
-          } catch (e) {
-            return true; // 对于已删除的班次类型，默认计入工作天数
-          }
-        })
-        .length;
-    
+    final totalWorkDays = shifts.where((s) {
+      try {
+        return !s.type.isRestDay;
+      } catch (e) {
+        return true; // 对于已删除的班次类型，默认计入工作天数
+      }
+    }).length;
+
     return MonthlyStatistics(
       shiftTypeCounts: typeCounts,
       totalWorkDays: totalWorkDays,
@@ -282,7 +289,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 刷新主页数据
-  Future<void> _onRefreshHomeData(RefreshHomeData event, Emitter<HomeState> emit) async {
+  Future<void> _onRefreshHomeData(
+      RefreshHomeData event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
@@ -295,7 +303,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 同步日历
-  Future<void> _onSyncCalendar(SyncCalendar event, Emitter<HomeState> emit) async {
+  Future<void> _onSyncCalendar(
+      SyncCalendar event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
@@ -323,29 +332,90 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   /// 显示备注对话框
-  Future<void> _onShowNoteDialog(ShowNoteDialog event, Emitter<HomeState> emit) async {
-    // 此方法主要用于触发UI层显示备注对话框
-    // 实际的对话框显示逻辑在UI层处理
+  Future<void> _onShowNoteDialog(
+      ShowNoteDialog event, Emitter<HomeState> emit) async {
+    debugPrint('触发显示备注对话框事件');
+
+    // 只需确认当前状态并触发UI操作，不涉及回调
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+
+      if (currentState.todayShift != null) {
+        debugPrint('有排班信息，可以显示备注对话框: ${currentState.todayShift!.type.name}');
+        // 此方法不再发出新状态，UI层会负责显示对话框
+      } else {
+        debugPrint('无法添加备注：今日没有排班信息');
+      }
+    } else {
+      debugPrint('当前不是HomeLoaded状态，无法显示备注对话框');
+    }
+  }
+
+  /// 保存班次备注
+  Future<void> _onSaveNoteToShift(
+      SaveNoteToShift event, Emitter<HomeState> emit) async {
+    debugPrint('保存班次备注');
+
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+
+      try {
+        debugPrint('准备更新班次备注: ${event.note}');
+
+        // 创建更新后的班次对象
+        final updatedShift = event.shift.copyWith(
+          note: event.note,
+        );
+
+        // 保存到数据库
+        await shiftRepository.upsertShift(updatedShift);
+
+        // 重新加载月度数据以保持一致性
+        final monthlyShifts = await shiftRepository.getShiftsByMonth(
+          currentState.selectedDate.year,
+          currentState.selectedDate.month,
+        );
+
+        // 只有当当前选中日期与更新的班次日期相同时，才更新todayShift
+        final newTodayShift =
+            DateFormat('yyyy-MM-dd').format(currentState.selectedDate) ==
+                    updatedShift.date
+                ? updatedShift
+                : currentState.todayShift;
+
+        // 更新UI状态
+        emit(currentState.copyWith(
+          todayShift: newTodayShift,
+          monthlyShifts: monthlyShifts,
+        ));
+
+        debugPrint('班次备注已更新成功');
+      } catch (e) {
+        debugPrint('更新班次备注时发生错误: $e');
+        emit(HomeError(e.toString()));
+      }
+    }
   }
 
   /// 快速添加班次
-  Future<void> _onQuickAddShift(QuickAddShift event, Emitter<HomeState> emit) async {
+  Future<void> _onQuickAddShift(
+      QuickAddShift event, Emitter<HomeState> emit) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
         await shiftRepository.upsertShift(event.shift);
-        
+
         // 重新加载数据以保持一致性
         final monthlyShifts = await shiftRepository.getShiftsByMonth(
           currentState.selectedDate.year,
           currentState.selectedDate.month,
         );
-        
+
         final stats = await _calculateMonthlyStatistics(
           currentState.selectedDate.year,
           currentState.selectedDate.month,
         );
-        
+
         emit(currentState.copyWith(
           monthlyShifts: monthlyShifts,
           monthlyStatistics: stats,
@@ -361,4 +431,4 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     // 清理资源
     return super.close();
   }
-} 
+}

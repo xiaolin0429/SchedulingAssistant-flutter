@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../../models/shift_template.dart';
-import '../../models/shift_type_enum.dart';
+import '../../models/shift_type.dart';
 import 'base_dao.dart';
 
 class ShiftTemplateDao extends BaseDao<ShiftTemplate> {
@@ -29,7 +29,7 @@ class ShiftTemplateDao extends BaseDao<ShiftTemplate> {
   Future<List<ShiftTemplate>> getTemplatesByType(ShiftType type) async {
     final List<Map<String, dynamic>> maps = await query(
       where: 'type = ?',
-      whereArgs: [type.toString()],
+      whereArgs: [type.name],
       orderBy: 'updateTime DESC',
     );
 
@@ -69,4 +69,4 @@ class ShiftTemplateDao extends BaseDao<ShiftTemplate> {
   Future<void> deleteAll() async {
     await delete('1 = 1', []);
   }
-} 
+}

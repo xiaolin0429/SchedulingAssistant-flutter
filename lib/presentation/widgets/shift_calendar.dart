@@ -21,7 +21,7 @@ class ShiftCalendar extends StatelessWidget {
         firstDay: DateTime.utc(2024, 1, 1),
         lastDay: DateTime.utc(2025, 12, 31),
         focusedDay: selectedDate,
-        currentDay: DateTime.now(),  // 设置今日日期
+        currentDay: DateTime.now(), // 设置今日日期
         selectedDayPredicate: (day) => isSameDay(selectedDate, day),
         onDaySelected: (selectedDay, focusedDay) {
           onDateSelected(selectedDay);
@@ -31,16 +31,16 @@ class ShiftCalendar extends StatelessWidget {
           onDateSelected(focusedDay);
         },
         eventLoader: (day) {
-          return shifts.where((shift) => 
-            isSameDay(DateTime.parse(shift.date), day)
-          ).toList();
+          return shifts
+              .where((shift) => isSameDay(DateTime.parse(shift.date), day))
+              .toList();
         },
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (context, day, focusedDay) {
-            final dayShifts = shifts.where((shift) => 
-              isSameDay(DateTime.parse(shift.date), day)
-            ).toList();
-            
+            final dayShifts = shifts
+                .where((shift) => isSameDay(DateTime.parse(shift.date), day))
+                .toList();
+
             return _buildDayCell(
               context,
               day,
@@ -50,10 +50,10 @@ class ShiftCalendar extends StatelessWidget {
             );
           },
           selectedBuilder: (context, day, focusedDay) {
-            final dayShifts = shifts.where((shift) => 
-              isSameDay(DateTime.parse(shift.date), day)
-            ).toList();
-            
+            final dayShifts = shifts
+                .where((shift) => isSameDay(DateTime.parse(shift.date), day))
+                .toList();
+
             return _buildDayCell(
               context,
               day,
@@ -63,10 +63,10 @@ class ShiftCalendar extends StatelessWidget {
             );
           },
           todayBuilder: (context, day, focusedDay) {
-            final dayShifts = shifts.where((shift) => 
-              isSameDay(DateTime.parse(shift.date), day)
-            ).toList();
-            
+            final dayShifts = shifts
+                .where((shift) => isSameDay(DateTime.parse(shift.date), day))
+                .toList();
+
             return _buildDayCell(
               context,
               day,
@@ -101,15 +101,13 @@ class ShiftCalendar extends StatelessWidget {
   Widget _buildDayCell(
     BuildContext context,
     DateTime day,
-    List<Shift> dayShifts,
-    {
-      required bool isSelected,
-      required bool isToday,
-    }
-  ) {
+    List<Shift> dayShifts, {
+    required bool isSelected,
+    required bool isToday,
+  }) {
     final hasShift = dayShifts.isNotEmpty;
     final shift = hasShift ? dayShifts.first : null;
-    
+
     return Container(
       margin: const EdgeInsets.all(1),
       child: Column(
@@ -121,7 +119,7 @@ class ShiftCalendar extends StatelessWidget {
             height: 28,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected 
+              color: isSelected
                   ? Theme.of(context).primaryColor
                   : shift?.type.colorValue.withAlpha(51),
               border: isToday
@@ -136,10 +134,14 @@ class ShiftCalendar extends StatelessWidget {
                 '${day.day}',
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected 
+                  fontWeight: isSelected || isToday
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  color: isSelected
                       ? Colors.white
-                      : day.weekday >= 6 ? Colors.red : null,
+                      : day.weekday >= 6
+                          ? Colors.red
+                          : null,
                 ),
               ),
             ),
@@ -167,4 +169,4 @@ class ShiftCalendar extends StatelessWidget {
       ),
     );
   }
-} 
+}

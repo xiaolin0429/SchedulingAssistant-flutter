@@ -64,7 +64,7 @@ Future<void> initDependencies() async {
   getIt.registerFactory<ShiftTypeBloc>(
     () => ShiftTypeBloc(getIt<ShiftTypeRepository>()),
   );
-  
+
   // 注册统计模块相关依赖
   registerStatisticsDependencies(getIt);
 

@@ -48,14 +48,14 @@ class HomeLoaded extends HomeState {
 
   @override
   List<Object?> get props => [
-    selectedDate,
-    todayShift,
-    monthlyShifts,
-    monthlyStatistics,
-    isSyncing,
-    availableShiftTypes,
-    isSelectingShiftType,
-  ];
+        selectedDate,
+        todayShift,
+        monthlyShifts,
+        monthlyStatistics,
+        isSyncing,
+        availableShiftTypes,
+        isSelectingShiftType,
+      ];
 
   HomeLoaded copyWith({
     DateTime? selectedDate,
@@ -76,4 +76,4 @@ class HomeLoaded extends HomeState {
       isSelectingShiftType: isSelectingShiftType ?? this.isSelectingShiftType,
     );
   }
-} 
+}

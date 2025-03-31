@@ -3,57 +3,35 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/settings/settings_bloc.dart';
 import '../../blocs/settings/settings_event.dart';
 import '../../blocs/settings/settings_state.dart';
-import '../../../core/di/injection_container.dart' as di;
 import '../../../core/localization/app_text.dart';
+import 'data_management_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<SettingsBloc>(
-      create: (_) => di.getIt<SettingsBloc>()..add(const LoadSettings()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: AppText('settings'),
-        ),
-        body: BlocBuilder<SettingsBloc, SettingsState>(
-          builder: (context, state) {
-            if (state is SettingsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is SettingsLoaded) {
-              return _buildSettingsList(context, state);
-            } else if (state is SettingsError) {
-              return Center(
-                child: Text(
-                  'loading_failed'.tr(context).replaceAll('{message}', state.message)
-                ),
-              );
-            } else if (state is SettingsNeedRestart) {
-              // 显示需要重启的提示
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    duration: const Duration(seconds: 5),
-                    action: SnackBarAction(
-                      label: 'ok'.tr(context),
-                      onPressed: () {
-                        // 重新加载设置
-                        context.read<SettingsBloc>().add(const LoadSettings());
-                      },
-                    ),
-                  ),
-                );
-                // 重新加载设置
-                context.read<SettingsBloc>().add(const LoadSettings());
-              });
-              return const Center(child: CircularProgressIndicator());
-            } else {
-              return Center(child: AppText('unknown_state'));
-            }
-          },
-        ),
+    // 使用已存在的SettingsBloc实例，确保设置变更立即生效
+    return Scaffold(
+      appBar: AppBar(
+        title: const AppText('settings'),
+      ),
+      body: BlocBuilder<SettingsBloc, SettingsState>(
+        builder: (context, state) {
+          if (state is SettingsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is SettingsLoaded) {
+            return _buildSettingsList(context, state);
+          } else if (state is SettingsError) {
+            return Center(
+              child: Text('loading_failed'
+                  .tr(context)
+                  .replaceAll('{message}', state.message)),
+            );
+          } else {
+            return const Center(child: AppText('unknown_state'));
+          }
+        },
       ),
     );
   }
@@ -64,32 +42,32 @@ class SettingsPage extends StatelessWidget {
         // 外观设置
         _buildSectionHeader(context, 'appearance'),
         _buildThemeModeSetting(context, state),
-        
+
         // 通知设置
         _buildSectionHeader(context, 'notification'),
         _buildNotificationSetting(context, state),
-        
+
         // 同步设置
         _buildSectionHeader(context, 'sync'),
         _buildSyncWithSystemCalendarSetting(context, state),
-        
+
         // 备份设置
         _buildSectionHeader(context, 'backup'),
         _buildBackupSetting(context, state),
         _buildBackupIntervalSetting(context, state),
-        
+
         // 语言设置
         _buildSectionHeader(context, 'language'),
         _buildLanguageSetting(context, state),
-        
+
         // 重置设置
         _buildSectionHeader(context, 'reset'),
         ListTile(
-          title: AppText('reset_title'),
-          subtitle: AppText('reset_desc'),
+          title: const AppText('reset_title'),
+          subtitle: const AppText('reset_desc'),
           trailing: ElevatedButton(
             onPressed: () => _showResetConfirmDialog(context),
-            child: AppText('reset_button'),
+            child: const AppText('reset_button'),
           ),
         ),
       ],
@@ -112,8 +90,8 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildThemeModeSetting(BuildContext context, SettingsLoaded state) {
     return ListTile(
-      title: AppText('theme_mode'),
-      subtitle: AppText('theme_mode_desc'),
+      title: const AppText('theme_mode'),
+      subtitle: const AppText('theme_mode_desc'),
       trailing: DropdownButton<String>(
         value: state.themeMode,
         onChanged: (String? newValue) {
@@ -121,7 +99,7 @@ class SettingsPage extends StatelessWidget {
             context.read<SettingsBloc>().add(UpdateThemeMode(newValue));
           }
         },
-        items: [
+        items: const [
           DropdownMenuItem(
             value: 'system',
             child: AppText('system'),
@@ -141,8 +119,8 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildNotificationSetting(BuildContext context, SettingsLoaded state) {
     return SwitchListTile(
-      title: AppText('notification_enable'),
-      subtitle: AppText('notification_desc'),
+      title: const AppText('notification_enable'),
+      subtitle: const AppText('notification_desc'),
       value: state.notificationsEnabled,
       onChanged: (bool value) {
         context.read<SettingsBloc>().add(UpdateNotifications(value));
@@ -150,10 +128,11 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSyncWithSystemCalendarSetting(BuildContext context, SettingsLoaded state) {
+  Widget _buildSyncWithSystemCalendarSetting(
+      BuildContext context, SettingsLoaded state) {
     return SwitchListTile(
-      title: AppText('sync_calendar'),
-      subtitle: AppText('sync_calendar_desc'),
+      title: const AppText('sync_calendar'),
+      subtitle: const AppText('sync_calendar_desc'),
       value: state.syncWithSystemCalendar,
       onChanged: (bool value) {
         context.read<SettingsBloc>().add(UpdateSyncWithSystemAlarm(value));
@@ -163,8 +142,8 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildBackupSetting(BuildContext context, SettingsLoaded state) {
     return SwitchListTile(
-      title: AppText('auto_backup'),
-      subtitle: AppText('auto_backup_desc'),
+      title: const AppText('auto_backup'),
+      subtitle: const AppText('auto_backup_desc'),
       value: state.backupEnabled,
       onChanged: (bool value) {
         context.read<SettingsBloc>().add(UpdateBackupSettings(enabled: value));
@@ -172,21 +151,22 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBackupIntervalSetting(BuildContext context, SettingsLoaded state) {
+  Widget _buildBackupIntervalSetting(
+      BuildContext context, SettingsLoaded state) {
     return ListTile(
-      title: AppText('backup_interval'),
-      subtitle: Text(
-        'backup_interval_desc'.tr(context).replaceAll('{days}', state.backupInterval.toString())
-      ),
+      title: const AppText('backup_interval'),
+      subtitle: Text('backup_interval_desc'
+          .tr(context)
+          .replaceAll('{days}', state.backupInterval.toString())),
       trailing: DropdownButton<int>(
         value: state.backupInterval,
         onChanged: state.backupEnabled
             ? (int? newValue) {
                 if (newValue != null) {
                   context.read<SettingsBloc>().add(UpdateBackupSettings(
-                    enabled: state.backupEnabled,
-                    interval: newValue,
-                  ));
+                        enabled: state.backupEnabled,
+                        interval: newValue,
+                      ));
                 }
               }
             : null,
@@ -218,8 +198,8 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildLanguageSetting(BuildContext context, SettingsLoaded state) {
     return ListTile(
-      title: AppText('language_select'),
-      subtitle: AppText('language_desc'),
+      title: const AppText('language_select'),
+      subtitle: const AppText('language_desc'),
       trailing: DropdownButton<String>(
         value: state.language,
         onChanged: (String? newValue) {
@@ -227,7 +207,7 @@ class SettingsPage extends StatelessWidget {
             context.read<SettingsBloc>().add(UpdateLanguage(newValue));
           }
         },
-        items: [
+        items: const [
           DropdownMenuItem(
             value: 'zh',
             child: AppText('chinese'),
@@ -246,26 +226,26 @@ class SettingsPage extends StatelessWidget {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: AppText('confirm_reset'),
-          content: AppText('confirm_reset_desc'),
+          title: const AppText('confirm_reset'),
+          content: const AppText('confirm_reset_desc'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: AppText('cancel'),
+              child: const AppText('cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 context.read<SettingsBloc>().add(const ResetSettings());
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: AppText('settings_reset')),
+                  const SnackBar(content: AppText('settings_reset')),
                 );
               },
-              child: AppText('confirm'),
+              child: const AppText('confirm'),
             ),
           ],
         );
       },
     );
   }
-} 
+}

@@ -29,7 +29,17 @@ class BackupInfoLoaded extends BackupState {
   });
 
   @override
-  List<Object?> get props => [lastBackupTime, backupSize, hasBackup, backupCount];
+  List<Object?> get props =>
+      [lastBackupTime, backupSize, hasBackup, backupCount];
+}
+
+class BackupListLoaded extends BackupState {
+  final List<Map<String, dynamic>> backupList;
+
+  const BackupListLoaded(this.backupList);
+
+  @override
+  List<Object?> get props => [backupList];
 }
 
 class BackupSuccess extends BackupState {
@@ -75,4 +85,4 @@ class ClearAllDataSuccess extends BackupState {
 
   @override
   List<Object?> get props => [message];
-} 
+}

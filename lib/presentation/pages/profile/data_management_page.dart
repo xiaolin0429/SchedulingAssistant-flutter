@@ -4,7 +4,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
 
 import '../../../domain/services/backup_service.dart';
 import '../../blocs/backup/backup_bloc.dart';
@@ -12,7 +11,7 @@ import '../../blocs/backup/backup_event.dart';
 import '../../blocs/backup/backup_state.dart';
 import '../../../core/di/injection_container.dart' as di;
 import '../../../core/localization/app_text.dart';
-import '../../../core/localization/localization_helper.dart';
+import 'backup_list_page.dart';
 
 class DataManagementPage extends StatelessWidget {
   const DataManagementPage({super.key});
@@ -43,18 +42,21 @@ class DataManagementPage extends StatelessWidget {
           builder: (context, state) {
             return ListView(
               children: [
+                // 备份数据丢失警告
+                _buildBackupWarning(context),
+
                 // 备份信息
                 _buildSectionHeader(context, 'backup_restore'),
                 _buildBackupInfo(context, state),
-                
+
                 // 备份操作
                 _buildSectionHeader(context, 'backup'),
                 _buildBackupActions(context, state),
-                
+
                 // 恢复操作
                 _buildSectionHeader(context, 'restore'),
                 _buildRestoreActions(context, state),
-                
+
                 // 数据清理
                 _buildSectionHeader(context, 'clear_data'),
                 _buildDataCleanupActions(context, state),
@@ -83,12 +85,12 @@ class DataManagementPage extends StatelessWidget {
   Widget _buildBackupInfo(BuildContext context, BackupState state) {
     String lastBackupTime = 'never_backup'.tr(context);
     String backupSize = '0 KB';
-    
+
     if (state is BackupInfoLoaded) {
       lastBackupTime = state.lastBackupTime;
       backupSize = state.backupSize;
     }
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -130,7 +132,7 @@ class DataManagementPage extends StatelessWidget {
 
   Widget _buildBackupActions(BuildContext context, BackupState state) {
     final isLoading = state is BackupLoading;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -145,31 +147,6 @@ class DataManagementPage extends StatelessWidget {
                     context.read<BackupBloc>().add(const CreateBackup());
                   },
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.share),
-            title: Text('export_backup'.tr(context)),
-            subtitle: Text('export_backup_desc'.tr(context)),
-            onTap: isLoading
-                ? null
-                : () async {
-                    final backupService = di.getIt<BackupService>();
-                    final backupFile = await backupService.getLatestBackupFile();
-                    
-                    if (backupFile != null) {
-                      await Share.shareXFiles(
-                        [XFile(backupFile.path)],
-                        subject: 'app_title'.tr(context) + ' ' + 'backup'.tr(context),
-                      );
-                    } else {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('no_backup_file'.tr(context))),
-                        );
-                      }
-                    }
-                  },
-          ),
         ],
       ),
     );
@@ -177,25 +154,23 @@ class DataManagementPage extends StatelessWidget {
 
   Widget _buildRestoreActions(BuildContext context, BackupState state) {
     final isLoading = state is BackupLoading;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
           ListTile(
             leading: const Icon(Icons.restore),
-            title: Text('restore_from_latest'.tr(context)),
-            subtitle: Text('restore_from_latest_desc'.tr(context)),
+            title: Text('restore_from_backups'.tr(context)),
+            subtitle: Text('restore_from_backups_desc'.tr(context)),
             onTap: isLoading
                 ? null
                 : () {
-                    _showRestoreConfirmDialog(
-                      context,
-                      'confirm_restore'.tr(context),
-                      'confirm_restore_latest_desc'.tr(context),
-                      () {
-                        context.read<BackupBloc>().add(const RestoreFromLatestBackup());
-                      },
+                    // 导航到备份列表页面
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const BackupListPage(),
+                      ),
                     );
                   },
           ),
@@ -207,13 +182,14 @@ class DataManagementPage extends StatelessWidget {
             onTap: isLoading
                 ? null
                 : () async {
-                    final params = OpenFileDialogParams(
-                      fileExtensionsFilter: ['zip'],
-                      mimeTypesFilter: ['application/zip'],
+                    const params = OpenFileDialogParams(
+                      fileExtensionsFilter: ['db'],
+                      mimeTypesFilter: ['application/octet-stream'],
                     );
-                    
-                    final filePath = await FlutterFileDialog.pickFile(params: params);
-                    
+
+                    final filePath =
+                        await FlutterFileDialog.pickFile(params: params);
+
                     if (filePath != null) {
                       final file = File(filePath);
                       if (context.mounted) {
@@ -222,7 +198,9 @@ class DataManagementPage extends StatelessWidget {
                           'confirm_restore'.tr(context),
                           'confirm_restore_file_desc'.tr(context),
                           () {
-                            context.read<BackupBloc>().add(RestoreFromFile(file));
+                            context
+                                .read<BackupBloc>()
+                                .add(RestoreFromFile(file));
                           },
                         );
                       }
@@ -236,7 +214,7 @@ class DataManagementPage extends StatelessWidget {
 
   Widget _buildDataCleanupActions(BuildContext context, BackupState state) {
     final isLoading = state is BackupLoading;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -250,17 +228,18 @@ class DataManagementPage extends StatelessWidget {
                 : () async {
                     final cacheDir = await getTemporaryDirectory();
                     final cacheSize = await _calculateDirSize(cacheDir);
-                    
+
                     if (context.mounted) {
                       _showCleanupConfirmDialog(
                         context,
                         'clear_cache'.tr(context),
-                        'clear_cache_confirm'.tr(context) + ': ${_formatSize(cacheSize)}',
+                        '${'clear_cache_confirm'.tr(context)}: ${_formatSize(cacheSize)}',
                         () async {
                           await _deleteCache();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('cache_cleared'.tr(context))),
+                              SnackBar(
+                                  content: Text('cache_cleared'.tr(context))),
                             );
                           }
                         },
@@ -271,7 +250,8 @@ class DataManagementPage extends StatelessWidget {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: Text('clear_all_data'.tr(context), style: const TextStyle(color: Colors.red)),
+            title: Text('clear_all_data'.tr(context),
+                style: const TextStyle(color: Colors.red)),
             subtitle: Text('clear_all_data_desc'.tr(context)),
             onTap: isLoading
                 ? null
@@ -390,4 +370,84 @@ class DataManagementPage extends StatelessWidget {
       },
     );
   }
-} 
+
+  // 备份数据丢失警告
+  Widget _buildBackupWarning(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'backup_warning'.tr(context),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'backup_warning_desc'.tr(context),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.share),
+                label: Text('export_backup'.tr(context)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                ),
+                onPressed: () {
+                  // 触发导出备份
+                  final backupService = di.getIt<BackupService>();
+                  backupService.getLatestBackupFile().then((backupFile) {
+                    if (context.mounted) {
+                      Share.shareXFiles(
+                        [XFile(backupFile.path)],
+                        subject:
+                            '${'app_title'.tr(context)} ${'backup'.tr(context)}',
+                      );
+                    }
+                  }).catchError((error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('no_backup_file'.tr(context)),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
