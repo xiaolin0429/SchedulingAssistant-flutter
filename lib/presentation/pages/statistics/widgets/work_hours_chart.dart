@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../core/localization/app_localizations.dart';
 import 'dart:math';
 
 class WorkHoursChart extends StatefulWidget {
-  final Map<String, double> dailyWorkHours;
+  final Map<DateTime, double> dailyWorkHours;
   final double totalWorkHours;
   final double averageWorkHours;
 
@@ -30,9 +31,9 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '工作时长统计',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('work_hours_statistics'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -42,16 +43,20 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatItem(
-                    '总工作时长', '${widget.totalWorkHours.toStringAsFixed(1)}小时'),
+                    AppLocalizations.of(context).translate('total_work_hours'),
+                    '${widget.totalWorkHours.toStringAsFixed(1)}${AppLocalizations.of(context).translate('hours_unit')}'),
                 _buildStatItem(
-                    '平均每日', '${widget.averageWorkHours.toStringAsFixed(1)}小时'),
+                    AppLocalizations.of(context).translate('average_daily'),
+                    '${widget.averageWorkHours.toStringAsFixed(1)}${AppLocalizations.of(context).translate('hours_unit')}'),
               ],
             ),
             const SizedBox(height: 16),
             SizedBox(
               height: 200,
               child: widget.dailyWorkHours.isEmpty
-                  ? const Center(child: Text('暂无数据'))
+                  ? Center(
+                      child: Text(
+                          AppLocalizations.of(context).translate('no_data')))
                   : SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Container(
@@ -63,7 +68,7 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                         child: BarChart(
                           BarChartData(
                             alignment: BarChartAlignment.center,
-                            maxY: _calculateMaxY(widget.dailyWorkHours),
+                            maxY: _calculateMaxY(),
                             minY: 0,
                             groupsSpace: 12, // 增加柱子组之间的间距
                             barTouchData: BarTouchData(
@@ -83,10 +88,8 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                                       .elementAt(group.x.toInt());
                                   final hours = widget.dailyWorkHours[date];
                                   // 格式化日期显示
-                                  final formattedDate = date.split('-').length >
-                                          2
-                                      ? '${date.split('-')[1]}-${date.split('-')[2]}'
-                                      : date;
+                                  final formattedDate =
+                                      '${date.month}-${date.day}';
                                   return BarTooltipItem(
                                     formattedDate,
                                     const TextStyle(
@@ -99,7 +102,8 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                                         text: '\n',
                                       ),
                                       TextSpan(
-                                        text: '${hours?.toStringAsFixed(1)} 小时',
+                                        text:
+                                            '${hours?.toStringAsFixed(1)} ${AppLocalizations.of(context).translate('hours_unit')}',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -144,32 +148,14 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                               bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    if (value.toInt() >= 0 &&
-                                        value.toInt() <
-                                            widget.dailyWorkHours.length) {
-                                      final date = widget.dailyWorkHours.keys
-                                          .elementAt(value.toInt());
-                                      // 简化日期显示，只显示日
-                                      final parts = date.split('-');
-                                      if (parts.length > 2) {
-                                        return Text(parts[2]);
-                                      }
-                                    }
-                                    return const Text('');
-                                  },
+                                  getTitlesWidget: _bottomTitles,
                                   reservedSize: 30,
                                 ),
                               ),
                               leftTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    if (value == 0) {
-                                      return const Text('0');
-                                    }
-                                    return Text(value.toInt().toString());
-                                  },
+                                  getTitlesWidget: _leftTitles,
                                   reservedSize: 30,
                                 ),
                               ),
@@ -183,11 +169,11 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                             borderData: FlBorderData(
                               show: false,
                             ),
-                            gridData: FlGridData(
+                            gridData: const FlGridData(
                               show: true,
                               horizontalInterval: 1,
                             ),
-                            barGroups: _buildBarGroups(),
+                            barGroups: _createBarGroups(),
                           ),
                         ),
                       ),
@@ -199,34 +185,77 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
     );
   }
 
-  double _calculateMaxY(Map<String, double> dailyWorkHours) {
-    if (dailyWorkHours.isEmpty) return 10;
-    final maxHours = dailyWorkHours.values.reduce(max);
-    return (maxHours.ceilToDouble() + 1); // 向上取整加1，保证有足够的显示空间
+  double _calculateMaxY() {
+    if (widget.dailyWorkHours.isEmpty) return 10;
+    final maxVal =
+        widget.dailyWorkHours.values.reduce((a, b) => a > b ? a : b) +
+            1; // Add 1 to give some space at the top
+    return maxVal < 10 ? 10 : maxVal;
   }
 
-  List<BarChartGroupData> _buildBarGroups() {
-    return List.generate(widget.dailyWorkHours.length, (index) {
-      final date = widget.dailyWorkHours.keys.elementAt(index);
-      final hours = widget.dailyWorkHours[date] ?? 0;
-      final isTouched = index == _touchedBarIndex;
-      final barColor = isTouched ? Colors.blue.shade300 : Colors.blue;
+  Widget _bottomTitles(double value, TitleMeta meta) {
+    final sortedDates = widget.dailyWorkHours.keys.toList()
+      ..sort((a, b) => a.compareTo(b));
 
-      return BarChartGroupData(
-        x: index,
-        barRods: [
-          BarChartRodData(
-            toY: hours,
-            color: barColor,
-            width: 16,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(6),
-              topRight: Radius.circular(6),
-            ),
+    if (value.toInt() >= 0 && value.toInt() < sortedDates.length) {
+      final date = sortedDates[value.toInt()];
+      return SideTitleWidget(
+        axisSide: meta.axisSide,
+        child: Text(
+          '${date.day}',
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
           ),
-        ],
+        ),
       );
-    });
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _leftTitles(double value, TitleMeta meta) {
+    if (value == 0) {
+      return const SizedBox.shrink();
+    }
+    return SideTitleWidget(
+      axisSide: meta.axisSide,
+      child: Text(
+        value.toInt().toString(),
+        style: const TextStyle(
+          fontSize: 10,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  List<BarChartGroupData> _createBarGroups() {
+    final sortedEntries = widget.dailyWorkHours.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    return List.generate(
+      sortedEntries.length,
+      (index) {
+        final entry = sortedEntries[index];
+        final isTouched = index == _touchedBarIndex;
+        final barColor = isTouched ? Colors.blue.shade300 : Colors.blue;
+
+        return BarChartGroupData(
+          x: index,
+          barRods: [
+            BarChartRodData(
+              toY: entry.value,
+              color: barColor,
+              width: 16,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(6),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildStatItem(String label, String value) {
@@ -240,6 +269,7 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
             color: Colors.blue,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(

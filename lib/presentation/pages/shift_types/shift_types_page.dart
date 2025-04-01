@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/shift_type.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../blocs/shift_type/shift_type_bloc.dart';
 import '../../blocs/shift_type/shift_type_event.dart';
 import '../../blocs/shift_type/shift_type_state.dart';
@@ -13,7 +14,8 @@ class ShiftTypesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('班次类型管理'),
+        title: Text(
+            AppLocalizations.of(context).translate('shift_type_management')),
         centerTitle: true,
       ),
       body: const ShiftTypesList(),
@@ -111,7 +113,8 @@ class ShiftTypeCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (shiftType.startTime != null && shiftType.endTime != null)
+                    if (shiftType.startTime != null &&
+                        shiftType.endTime != null)
                       Text(
                         '${shiftType.startTime} - ${shiftType.endTime}',
                         style: const TextStyle(
@@ -185,7 +188,9 @@ class ShiftTypeCard extends StatelessWidget {
               onPressed: () {
                 Navigator.pop(context);
                 if (shiftType.id != null) {
-                  context.read<ShiftTypeBloc>().add(DeleteShiftType(shiftType.id!));
+                  context
+                      .read<ShiftTypeBloc>()
+                      .add(DeleteShiftType(shiftType.id!));
                 }
               },
               child: const Text('删除', style: TextStyle(color: Colors.red)),
@@ -195,4 +200,4 @@ class ShiftTypeCard extends StatelessWidget {
       },
     );
   }
-} 
+}

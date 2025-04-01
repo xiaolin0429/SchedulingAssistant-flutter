@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../blocs/statistics/statistics_bloc.dart';
 import '../../../blocs/statistics/statistics_event.dart';
 
-class MonthSelector extends StatelessWidget {
+class MonthSelector extends StatefulWidget {
   final DateTime selectedMonth;
   final Function(DateTime) onMonthChanged;
 
@@ -12,6 +14,35 @@ class MonthSelector extends StatelessWidget {
     required this.selectedMonth,
     required this.onMonthChanged,
   });
+
+  @override
+  State<MonthSelector> createState() => _MonthSelectorState();
+}
+
+class _MonthSelectorState extends State<MonthSelector> {
+  Timer? _debounceTimer;
+
+  // 使用防抖函数包装月份变更操作
+  void _debouncedMonthChange(DateTime newMonth) {
+    // 取消之前的定时器
+    if (_debounceTimer?.isActive ?? false) {
+      _debounceTimer?.cancel();
+    }
+
+    // 立即更新UI显示，但延迟触发数据加载
+    widget.onMonthChanged(newMonth);
+
+    // 设置新的定时器，300毫秒后再触发数据加载
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      context.read<StatisticsBloc>().add(UpdateSelectedMonth(newMonth));
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,33 +55,27 @@ class MonthSelector extends StatelessWidget {
             icon: const Icon(Icons.chevron_left),
             onPressed: () {
               final newMonth = DateTime(
-                selectedMonth.year,
-                selectedMonth.month - 1,
+                widget.selectedMonth.year,
+                widget.selectedMonth.month - 1,
               );
-              onMonthChanged(newMonth);
-              context.read<StatisticsBloc>().add(
-                    UpdateSelectedMonth(newMonth),
-                  );
+              _debouncedMonthChange(newMonth);
             },
           ),
           GestureDetector(
             onTap: () async {
               final DateTime? picked = await showDatePicker(
                 context: context,
-                initialDate: selectedMonth,
+                initialDate: widget.selectedMonth,
                 firstDate: DateTime(2020),
                 lastDate: DateTime(2030),
                 initialDatePickerMode: DatePickerMode.year,
               );
               if (picked != null) {
-                onMonthChanged(picked);
-                context.read<StatisticsBloc>().add(
-                      UpdateSelectedMonth(picked),
-                    );
+                _debouncedMonthChange(picked);
               }
             },
             child: Text(
-              '${selectedMonth.year}年${selectedMonth.month}月',
+              _getLocalizedMonth(context, widget.selectedMonth),
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -63,13 +88,10 @@ class MonthSelector extends StatelessWidget {
                 icon: const Icon(Icons.chevron_right),
                 onPressed: () {
                   final newMonth = DateTime(
-                    selectedMonth.year,
-                    selectedMonth.month + 1,
+                    widget.selectedMonth.year,
+                    widget.selectedMonth.month + 1,
                   );
-                  onMonthChanged(newMonth);
-                  context.read<StatisticsBloc>().add(
-                        UpdateSelectedMonth(newMonth),
-                      );
+                  _debouncedMonthChange(newMonth);
                 },
               ),
               IconButton(
@@ -103,12 +125,14 @@ class MonthSelector extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('选择日期范围'),
+              title: Text(
+                  AppLocalizations.of(context).translate('date_range_select')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: const Text('开始日期'),
+                    title: Text(
+                        AppLocalizations.of(context).translate('start_date')),
                     subtitle: Text(
                         '${startDate.year}-${startDate.month}-${startDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
@@ -131,7 +155,8 @@ class MonthSelector extends StatelessWidget {
                     },
                   ),
                   ListTile(
-                    title: const Text('结束日期'),
+                    title: Text(
+                        AppLocalizations.of(context).translate('end_date')),
                     subtitle:
                         Text('${endDate.year}-${endDate.month}-${endDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
@@ -156,7 +181,7 @@ class MonthSelector extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text('取消'),
+                  child: Text(AppLocalizations.of(context).translate('cancel')),
                 ),
                 TextButton(
                   onPressed: () {
@@ -165,7 +190,8 @@ class MonthSelector extends StatelessWidget {
                           LoadDateRangeStatistics(startDate, endDate),
                         );
                   },
-                  child: const Text('确定'),
+                  child:
+                      Text(AppLocalizations.of(context).translate('confirm')),
                 ),
               ],
             );
@@ -173,5 +199,31 @@ class MonthSelector extends StatelessWidget {
         );
       },
     );
+  }
+
+  // 获取本地化的月份显示
+  String _getLocalizedMonth(BuildContext context, DateTime date) {
+    // 根据当前语言环境决定显示格式
+    final locale = Localizations.localeOf(context).languageCode;
+    if (locale == 'zh') {
+      return '${date.year}年${date.month}月';
+    } else {
+      // 英文和其他语言环境使用标准格式
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+      ];
+      return '${months[date.month - 1]} ${date.year}';
+    }
   }
 }

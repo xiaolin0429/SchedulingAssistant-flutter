@@ -36,14 +36,14 @@ class ProfilePage extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
-                title: AppText(
+                title: const AppText(
                   'nickname',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                subtitle: AppText('bio'),
+                subtitle: const AppText('bio'),
                 trailing: const Icon(Icons.chevron_right),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../blocs/home/home_bloc.dart';
 import '../../blocs/home/home_event.dart';
 import '../../blocs/home/home_state.dart';
@@ -20,7 +21,9 @@ class HomePage extends StatelessWidget {
         }
 
         if (state is HomeError) {
-          return Center(child: Text('错误: ${state.message}'));
+          return Center(
+              child: Text(
+                  '${AppLocalizations.of(context).translate('error_message')}: ${state.message}'));
         }
 
         if (state is HomeLoaded) {
@@ -73,7 +76,9 @@ class HomePage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        DateFormat('yyyy年MM月').format(state.selectedDate),
+                        DateFormat(AppLocalizations.of(context)
+                                .translate('date_format_year_month'))
+                            .format(state.selectedDate),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -144,10 +149,11 @@ class HomePage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Center(
+                              Center(
                                 child: Text(
-                                  '今日排班',
-                                  style: TextStyle(
+                                  AppLocalizations.of(context)
+                                      .translate('today_shift'),
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -155,10 +161,11 @@ class HomePage extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
                               if (state.todayShift == null)
-                                const Center(
+                                Center(
                                   child: Text(
-                                    '暂无班次',
-                                    style: TextStyle(color: Colors.grey),
+                                    AppLocalizations.of(context)
+                                        .translate('no_shift'),
+                                    style: const TextStyle(color: Colors.grey),
                                   ),
                                 )
                               else
@@ -166,19 +173,19 @@ class HomePage extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text(
-                                      '班次类型: ${state.todayShift!.type.name}',
+                                      '${AppLocalizations.of(context).translate('shift_type_label')} ${state.todayShift!.type.name}',
                                       textAlign: TextAlign.center,
                                     ),
                                     if (state.todayShift!.startTime != null &&
                                         state.todayShift!.endTime != null)
                                       Text(
-                                        '时间: ${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
+                                        '${AppLocalizations.of(context).translate('shift_time_label')} ${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
                                         textAlign: TextAlign.center,
                                       ),
                                     if (state.todayShift!.note?.isNotEmpty ??
                                         false)
                                       Text(
-                                        '备注: ${state.todayShift!.note}',
+                                        '${AppLocalizations.of(context).translate('note_label')} ${state.todayShift!.note}',
                                         textAlign: TextAlign.center,
                                       ),
                                   ],
@@ -205,16 +212,21 @@ class HomePage extends StatelessWidget {
                                           // 显示提示信息
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
-                                            const SnackBar(
-                                              content: Text('没有排班信息，无法添加备注'),
-                                              duration: Duration(seconds: 2),
+                                            SnackBar(
+                                              content: Text(
+                                                  AppLocalizations.of(context)
+                                                      .translate(
+                                                          'no_shift_for_note')),
+                                              duration:
+                                                  const Duration(seconds: 2),
                                             ),
                                           );
                                         }
                                       },
                                       icon:
                                           const Icon(Icons.note_add, size: 20),
-                                      label: const Text('添加备注'),
+                                      label: Text(AppLocalizations.of(context)
+                                          .translate('add_note')),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12),
@@ -229,7 +241,8 @@ class HomePage extends StatelessWidget {
                                             .add(const StartShift());
                                       },
                                       icon: const Icon(Icons.add, size: 20),
-                                      label: const Text('开始排班'),
+                                      label: Text(AppLocalizations.of(context)
+                                          .translate('add_shift')),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12),
@@ -244,7 +257,8 @@ class HomePage extends StatelessWidget {
                                       },
                                       icon:
                                           const Icon(Icons.skip_next, size: 20),
-                                      label: const Text('下一班次'),
+                                      label: Text(AppLocalizations.of(context)
+                                          .translate('next_shift')),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12),
@@ -295,11 +309,11 @@ class HomePage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加备注'),
+        title: Text(AppLocalizations.of(context).translate('add_note')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: '请输入备注内容',
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context).translate('note_hint'),
           ),
           maxLines: 3,
         ),
@@ -309,7 +323,7 @@ class HomePage extends StatelessWidget {
               debugPrint('取消添加备注');
               Navigator.pop(context);
             },
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context).translate('cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -327,7 +341,7 @@ class HomePage extends StatelessWidget {
                     );
               }
             },
-            child: const Text('保存'),
+            child: Text(AppLocalizations.of(context).translate('save')),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../data/models/shift_type.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ShiftTypePieChart extends StatefulWidget {
   final Map<ShiftType, int> shiftTypeCountMap;
@@ -26,9 +27,9 @@ class _ShiftTypePieChartState extends State<ShiftTypePieChart> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '班次类型分布',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('shift_type_distribution'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -37,7 +38,9 @@ class _ShiftTypePieChartState extends State<ShiftTypePieChart> {
             SizedBox(
               height: 200,
               child: widget.shiftTypeCountMap.isEmpty
-                  ? const Center(child: Text('暂无数据'))
+                  ? Center(
+                      child: Text(
+                          AppLocalizations.of(context).translate('no_data')))
                   : PieChart(
                       PieChartData(
                         sections: _buildPieChartSections(),

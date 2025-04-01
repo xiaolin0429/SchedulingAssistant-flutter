@@ -4,6 +4,7 @@ import '../../blocs/settings/settings_bloc.dart';
 import '../../blocs/settings/settings_event.dart';
 import '../../blocs/settings/settings_state.dart';
 import '../../../core/localization/app_text.dart';
+import '../../blocs/alarm/alarm_bloc.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -117,12 +118,75 @@ class SettingsPage extends StatelessWidget {
   }
 
   Widget _buildNotificationSetting(BuildContext context, SettingsLoaded state) {
+    // 尝试获取当前已注册的AlarmBloc实例
+    final AlarmBloc alarmBloc =
+        BlocProvider.of<AlarmBloc>(context, listen: false);
+
     return SwitchListTile(
       title: const AppText('notification_enable'),
       subtitle: const AppText('notification_desc'),
       value: state.notificationsEnabled,
       onChanged: (bool value) {
-        context.read<SettingsBloc>().add(UpdateNotifications(value));
+        // 仅当用户尝试启用通知时，显示权限说明
+        if (value) {
+          _showNotificationPermissionDialog(context, value);
+        } else {
+          // 关闭通知不需要额外确认
+          context.read<SettingsBloc>().add(UpdateNotifications(
+                value,
+                alarmBloc: alarmBloc,
+              ));
+
+          // 显示确认提示
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: AppText('notification_disabled_message'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _showNotificationPermissionDialog(BuildContext context, bool newValue) {
+    // 尝试获取当前已注册的AlarmBloc实例
+    final alarmBloc = BlocProvider.of<AlarmBloc>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const AppText('notification_permission_title'),
+          content: const AppText('notification_permission_desc'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const AppText('cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                // 用户确认后启用通知，并传入alarmBloc
+                context.read<SettingsBloc>().add(UpdateNotifications(
+                      newValue,
+                      alarmBloc: alarmBloc,
+                    ));
+
+                // 显示确认提示
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: AppText(newValue
+                        ? 'notification_enabled_message'
+                        : 'notification_disabled_message'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const AppText('confirm'),
+            ),
+          ],
+        );
       },
     );
   }
@@ -169,26 +233,26 @@ class SettingsPage extends StatelessWidget {
                 }
               }
             : null,
-        items: const [
+        items: [
           DropdownMenuItem(
             value: 1,
-            child: Text('1天'),
+            child: Text('backup_interval_1_day'.tr(context)),
           ),
           DropdownMenuItem(
             value: 3,
-            child: Text('3天'),
+            child: Text('backup_interval_3_days'.tr(context)),
           ),
           DropdownMenuItem(
             value: 7,
-            child: Text('7天'),
+            child: Text('backup_interval_7_days'.tr(context)),
           ),
           DropdownMenuItem(
             value: 14,
-            child: Text('14天'),
+            child: Text('backup_interval_14_days'.tr(context)),
           ),
           DropdownMenuItem(
             value: 30,
-            child: Text('30天'),
+            child: Text('backup_interval_30_days'.tr(context)),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/shift.dart';
+import '../../core/localization/app_localizations.dart';
 
 class TodayShiftCard extends StatelessWidget {
   final Shift? shift;
@@ -19,9 +20,9 @@ class TodayShiftCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '今日排班',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('today_shift'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -34,12 +35,15 @@ class TodayShiftCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('班次类型: ${shift!.type}'),
+                        Text(
+                            '${AppLocalizations.of(context).translate('shift_type_label')} ${shift!.type.name}'),
                         const SizedBox(height: 4),
-                        Text('时间: ${shift!.startTime} - ${shift!.endTime}'),
+                        Text(
+                            '${AppLocalizations.of(context).translate('shift_time_label')} ${shift!.startTime} - ${shift!.endTime}'),
                         if (shift!.note?.isNotEmpty ?? false) ...[
                           const SizedBox(height: 4),
-                          Text('备注: ${shift!.note}'),
+                          Text(
+                              '${AppLocalizations.of(context).translate('note_label')} ${shift!.note}'),
                         ],
                       ],
                     ),
@@ -47,7 +51,7 @@ class TodayShiftCard extends StatelessWidget {
                   IconButton(
                     onPressed: () => _showNoteDialog(context),
                     icon: const Icon(Icons.edit),
-                    tooltip: '编辑备注',
+                    tooltip: AppLocalizations.of(context).translate('add_note'),
                   ),
                 ],
               ),
@@ -56,7 +60,8 @@ class TodayShiftCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: () => _showShiftDialog(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('添加排班'),
+                  label:
+                      Text(AppLocalizations.of(context).translate('add_shift')),
                 ),
               ),
           ],
@@ -70,18 +75,18 @@ class TodayShiftCard extends StatelessWidget {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加备注'),
+        title: Text(AppLocalizations.of(context).translate('add_note')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: '请输入备注内容',
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context).translate('note_hint'),
           ),
           maxLines: 3,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppLocalizations.of(context).translate('cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -93,7 +98,7 @@ class TodayShiftCard extends StatelessWidget {
               }
               Navigator.pop(context);
             },
-            child: const Text('保存'),
+            child: Text(AppLocalizations.of(context).translate('save')),
           ),
         ],
       ),
@@ -103,4 +108,4 @@ class TodayShiftCard extends StatelessWidget {
   Future<void> _showShiftDialog(BuildContext context) async {
     // TODO: 实现编辑排班对话框
   }
-} 
+}

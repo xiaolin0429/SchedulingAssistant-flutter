@@ -5,13 +5,17 @@ import '../../data/repositories/shift_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/shift_type_repository.dart';
 import '../../data/repositories/calendar_repository.dart';
+import '../../data/repositories/alarm_repository.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/settings/settings_bloc.dart';
 import '../../presentation/blocs/shift/shift_bloc.dart';
 import '../../presentation/blocs/shift_type/shift_type_bloc.dart';
+import '../../presentation/blocs/alarm/alarm_bloc.dart';
 import 'statistics_injection.dart';
 import '../../domain/services/settings_service.dart';
 import '../../domain/services/backup_service.dart';
+import '../../domain/services/alarm_service.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../presentation/blocs/backup/backup_bloc.dart';
 
 final getIt = GetIt.instance;
@@ -24,6 +28,11 @@ Future<void> initDependencies() async {
   // 数据库提供者
   final databaseProvider = await DatabaseProvider.initialize();
   getIt.registerSingleton<DatabaseProvider>(databaseProvider);
+
+  // 通知服务
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  getIt.registerSingleton<NotificationService>(notificationService);
 
   // Repositories
   getIt.registerLazySingleton<ShiftRepository>(
@@ -42,13 +51,20 @@ Future<void> initDependencies() async {
     () => CalendarRepository(),
   );
 
+  getIt.registerLazySingleton<AlarmRepository>(
+    () => AlarmRepository(databaseProvider.alarmDao),
+  );
+
   // Blocs
   getIt.registerFactory<ShiftBloc>(
     () => ShiftBloc(getIt<ShiftRepository>()),
   );
 
   getIt.registerFactory<SettingsBloc>(
-    () => SettingsBloc(getIt<SettingsRepository>()),
+    () => SettingsBloc(
+      getIt<SettingsRepository>(),
+      notificationService: getIt<NotificationService>(),
+    ),
   );
 
   getIt.registerFactory<HomeBloc>(
@@ -64,6 +80,10 @@ Future<void> initDependencies() async {
     () => ShiftTypeBloc(getIt<ShiftTypeRepository>()),
   );
 
+  getIt.registerFactory<AlarmBloc>(
+    () => AlarmBloc(getIt<AlarmService>()),
+  );
+
   // 注册统计模块相关依赖
   registerStatisticsDependencies(getIt);
 
@@ -72,6 +92,8 @@ Future<void> initDependencies() async {
     () => SettingsService(getIt<SettingsRepository>()),
   );
   getIt.registerLazySingleton<BackupService>(() => BackupService());
+  getIt.registerLazySingleton<AlarmService>(() =>
+      AlarmService(getIt<AlarmRepository>(), getIt<NotificationService>()));
 
   // Blocs
   getIt.registerFactory<BackupBloc>(() => BackupBloc(getIt()));

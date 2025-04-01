@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
+import '../../../core/localization/app_localizations.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -55,7 +55,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('关于'),
+        title: Text(AppLocalizations.of(context).translate('about')),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -105,27 +105,27 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '排班助手',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).translate('app_title'),
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '版本 $_appVersion ($_buildNumber)',
+            '${AppLocalizations.of(context).translate('version')} $_appVersion ($_buildNumber)',
             style: TextStyle(
               color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              '一款简单易用的排班管理工具，帮助您轻松管理工作班次、设置提醒，并提供详细的统计分析。',
+              AppLocalizations.of(context).translate('about_app_description'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ],
@@ -141,29 +141,29 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '开发团队',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('development_team'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
             _buildDeveloperItem(
-              name: '开发者',
-              role: '应用开发',
+              name: AppLocalizations.of(context).translate('developer'),
+              role: AppLocalizations.of(context).translate('application_development'),
               email: 'developer@example.com',
             ),
             const Divider(),
             _buildDeveloperItem(
-              name: '设计师',
-              role: 'UI/UX 设计',
+              name: AppLocalizations.of(context).translate('designer'),
+              role: AppLocalizations.of(context).translate('ui_ux_design'),
               email: 'designer@example.com',
             ),
             const Divider(),
             _buildDeveloperItem(
-              name: '测试人员',
-              role: '质量保证',
+              name: AppLocalizations.of(context).translate('tester'),
+              role: AppLocalizations.of(context).translate('quality_assurance'),
               email: 'tester@example.com',
             ),
           ],
@@ -224,27 +224,27 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
       child: Column(
         children: [
           ListTile(
-            title: const Text('开源许可'),
-            subtitle: const Text('查看第三方库许可信息'),
+            title: Text(AppLocalizations.of(context).translate('open_source_licenses')),
+            subtitle: Text(AppLocalizations.of(context).translate('third_party_licenses')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               showLicensePage(
                 context: context,
-                applicationName: '排班助手',
+                applicationName: AppLocalizations.of(context).translate('app_title'),
                 applicationVersion: _appVersion,
-                applicationLegalese: '© 2023 排班助手团队',
+                applicationLegalese: '© 2023 ${AppLocalizations.of(context).translate('app_title')}',
               );
             },
           ),
           const Divider(height: 1),
           ListTile(
-            title: const Text('隐私政策'),
+            title: Text(AppLocalizations.of(context).translate('privacy_policy')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => _launchUrl('https://example.com/privacy'),
           ),
           const Divider(height: 1),
           ListTile(
-            title: const Text('用户协议'),
+            title: Text(AppLocalizations.of(context).translate('user_agreement')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => _launchUrl('https://example.com/terms'),
           ),
@@ -259,29 +259,29 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
         'version': '1.0.0',
         'date': '2023-12-15',
         'changes': [
-          '首次发布',
-          '基本排班功能',
-          '闹钟提醒功能',
-          '统计分析功能',
+          AppLocalizations.of(context).translate('first_release'),
+          AppLocalizations.of(context).translate('basic_scheduling'),
+          AppLocalizations.of(context).translate('alarm_reminder'),
+          AppLocalizations.of(context).translate('statistics_analysis'),
         ],
       },
       {
         'version': '1.1.0',
         'date': '2024-02-20',
         'changes': [
-          '添加数据备份与恢复功能',
-          '优化用户界面',
-          '修复已知问题',
+          AppLocalizations.of(context).translate('add_backup_restore'),
+          AppLocalizations.of(context).translate('optimize_ui'),
+          AppLocalizations.of(context).translate('fix_known_issues'),
         ],
       },
       {
         'version': '1.2.0',
         'date': '2024-04-10',
         'changes': [
-          '添加系统日历同步功能',
-          '增强统计分析功能',
-          '提升应用性能',
-          '修复已知问题',
+          AppLocalizations.of(context).translate('add_calendar_sync'),
+          AppLocalizations.of(context).translate('enhance_statistics'),
+          AppLocalizations.of(context).translate('improve_performance'),
+          AppLocalizations.of(context).translate('fix_known_issues'),
         ],
       },
     ];
@@ -293,9 +293,9 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '版本历史',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('version_history'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -317,7 +317,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
           Row(
             children: [
               Text(
-                '版本 ${version['version']}',
+                '${AppLocalizations.of(context).translate('version')} ${version['version']}',
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 8),
@@ -359,22 +359,22 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              '🎉 恭喜你发现了彩蛋！',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('easter_egg_congrats'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '感谢您使用排班助手！我们的开发团队为这款应用倾注了大量心血，希望它能为您的工作带来便利。',
+            Text(
+              AppLocalizations.of(context).translate('easter_egg_message'),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            const Text(
-              '— 排班助手团队',
-              style: TextStyle(fontStyle: FontStyle.italic),
+            Text(
+              AppLocalizations.of(context).translate('development_team_signature'),
+              style: const TextStyle(fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -393,7 +393,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('无法打开邮件应用')),
+          SnackBar(content: Text(AppLocalizations.of(context).translate('email_open_fail'))),
         );
       }
     }
@@ -406,7 +406,7 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('无法打开链接')),
+          SnackBar(content: Text(AppLocalizations.of(context).translate('url_open_fail'))),
         );
       }
     }

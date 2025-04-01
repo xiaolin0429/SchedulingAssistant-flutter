@@ -74,4 +74,9 @@ class DeleteAlarms extends AlarmEvent {
 
   @override
   List<Object> get props => [ids];
-} 
+}
+
+/// 重新安排所有闹钟通知事件，用于通知设置变更时
+class RescheduleAlarms extends AlarmEvent {
+  const RescheduleAlarms();
+}

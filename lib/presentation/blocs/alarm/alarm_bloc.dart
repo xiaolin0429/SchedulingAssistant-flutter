@@ -17,11 +17,27 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     on<UpdateAlarmRepeat>(_onUpdateAlarmRepeat);
     on<LoadNextAlarm>(_onLoadNextAlarm);
     on<DeleteAlarms>(_onDeleteAlarms);
+    on<RescheduleAlarms>(_onRescheduleAlarms);
 
     // 监听闹钟流
-    _alarmsSubscription = _alarmService.alarmsStream.listen((alarms) {
-      add(const LoadAlarms());
+    _alarmsSubscription = _alarmService.alarmsStream.listen((alarms) async {
+      // 直接更新状态，而不是触发新的LoadAlarms事件
+      try {
+        final nextAlarm = await _alarmService.getNextAlarm();
+        emit(AlarmLoaded(alarms: alarms, nextAlarm: nextAlarm));
+      } catch (e) {
+        // 如果获取nextAlarm失败，只更新alarms
+        if (state is AlarmLoaded) {
+          final currentState = state as AlarmLoaded;
+          emit(AlarmLoaded(alarms: alarms, nextAlarm: currentState.nextAlarm));
+        } else {
+          emit(AlarmLoaded(alarms: alarms, nextAlarm: null));
+        }
+      }
     });
+
+    // 初始加载
+    add(const LoadAlarms());
   }
 
   Future<void> _onLoadAlarms(
@@ -123,9 +139,35 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     }
   }
 
+  /// 处理重新安排所有闹钟通知事件
+  Future<void> _onRescheduleAlarms(
+    RescheduleAlarms event,
+    Emitter<AlarmState> emit,
+  ) async {
+    try {
+      // 调用服务层方法重新安排所有闹钟
+      await _alarmService.rescheduleAllAlarms();
+
+      // 重新加载闹钟状态（可选，因为alarmsStream会自动更新状态）
+      if (state is AlarmLoaded) {
+        // 保持当前加载的状态，避免UI闪烁
+        final currentState = state as AlarmLoaded;
+        // 刷新下一个闹钟信息
+        final nextAlarm = await _alarmService.getNextAlarm();
+        emit(currentState.copyWith(nextAlarm: nextAlarm));
+      } else {
+        // 如果当前未加载状态，则触发完整加载
+        add(const LoadAlarms());
+      }
+    } catch (e) {
+      // 只记录错误但不改变状态，避免UI闪烁
+      print('重新安排闹钟失败: $e');
+    }
+  }
+
   @override
   Future<void> close() {
     _alarmsSubscription?.cancel();
     return super.close();
   }
-} 
+}

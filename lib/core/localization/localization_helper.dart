@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'app_localizations.dart';
 
 /// 本地化帮助类，提供常用的本地化功能
 class LocalizationHelper {

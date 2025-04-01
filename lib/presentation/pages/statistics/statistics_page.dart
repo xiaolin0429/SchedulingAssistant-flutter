@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../blocs/statistics/statistics_bloc.dart';
 import '../../blocs/statistics/statistics_event.dart';
 import '../../blocs/statistics/statistics_state.dart';
@@ -17,6 +18,7 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage> {
   DateTime _selectedMonth = DateTime.now();
+  StatisticsLoaded? _previousLoadedState;
 
   @override
   void initState() {
@@ -33,62 +35,76 @@ class _StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: BlocBuilder<StatisticsBloc, StatisticsState>(
-          builder: (context, state) {
-            if (state is StatisticsInitial) {
-              // 触发加载
-              context.read<StatisticsBloc>().add(
-                    LoadMonthlyStatistics(
-                      _selectedMonth.year,
-                      _selectedMonth.month,
-                    ),
-                  );
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is StatisticsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is StatisticsError) {
-              return _buildErrorState(context, state);
-            } else if (state is StatisticsLoaded) {
-              return _buildStatisticsContent(context, state);
-            }
-            return const Center(child: CircularProgressIndicator());
-          },
-        ),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).translate('statistics')),
       ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context, StatisticsError state) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '加载失败',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(state.message),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              context.read<StatisticsBloc>().add(
-                    LoadMonthlyStatistics(
-                      _selectedMonth.year,
-                      _selectedMonth.month,
-                    ),
-                  );
+      body: BlocConsumer<StatisticsBloc, StatisticsState>(
+        listener: (context, state) {
+          if (state is StatisticsLoaded) {
+            _previousLoadedState = state;
+          }
+        },
+        builder: (context, state) {
+          // 总是显示MonthSelector，即使在加载中
+          final topSelector = MonthSelector(
+            selectedMonth: _selectedMonth,
+            onMonthChanged: (newMonth) {
+              setState(() {
+                _selectedMonth = newMonth;
+              });
             },
-            child: const Text('重试'),
-          ),
-        ],
+          );
+
+          // 如果当前状态是加载中，但有之前的数据，则使用之前的数据保持界面稳定
+          if (state is StatisticsLoading && _previousLoadedState != null) {
+            return Stack(
+              children: [
+                _buildStatisticsContent(context, _previousLoadedState!),
+                // 添加半透明加载指示器覆盖
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white.withOpacity(0.5),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          if (state is StatisticsError) {
+            return Column(
+              children: [
+                topSelector,
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      '${AppLocalizations.of(context).translate('error_message')}: ${state.message}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          if (state is StatisticsLoaded) {
+            return _buildStatisticsContent(context, state);
+          }
+
+          // 首次加载时显示加载指示器
+          return Column(
+            children: [
+              topSelector,
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -118,7 +134,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   onPressed: () {
                     _showDateRangeDialog(context);
                   },
-                  child: const Text('选择日期范围'),
+                  child: Text(AppLocalizations.of(context)
+                      .translate('date_range_select')),
                 ),
               ],
             ),
@@ -130,7 +147,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
             child: Row(
               children: [
                 Text(
-                  '本月总班次：',
+                  AppLocalizations.of(context)
+                      .translate('monthly_total_shifts'),
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 16,
@@ -161,7 +179,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
           // 工作时长统计图表
           WorkHoursChart(
-            dailyWorkHours: state.dailyWorkHours,
+            dailyWorkHours: _convertStringDateToDateTime(state.dailyWorkHours),
             totalWorkHours: state.totalWorkHours,
             averageWorkHours: state.averageWorkHours,
           ),
@@ -170,6 +188,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ],
       ),
     );
+  }
+
+  // 将String日期转换为DateTime
+  Map<DateTime, double> _convertStringDateToDateTime(
+      Map<String, double> stringDateMap) {
+    final Map<DateTime, double> dateTimeMap = {};
+    for (final entry in stringDateMap.entries) {
+      final parts = entry.key.split('-');
+      if (parts.length == 3) {
+        final date = DateTime(
+          int.parse(parts[0]), // 年
+          int.parse(parts[1]), // 月
+          int.parse(parts[2]), // 日
+        );
+        dateTimeMap[date] = entry.value;
+      }
+    }
+    return dateTimeMap;
   }
 
   void _showDateRangeDialog(BuildContext context) {
@@ -190,12 +226,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('选择日期范围'),
+              title: Text(
+                  AppLocalizations.of(context).translate('date_range_select')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: const Text('开始日期'),
+                    title: Text(
+                        AppLocalizations.of(context).translate('start_date')),
                     subtitle: Text(
                         '${startDate.year}-${startDate.month}-${startDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
@@ -218,7 +256,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     },
                   ),
                   ListTile(
-                    title: const Text('结束日期'),
+                    title: Text(
+                        AppLocalizations.of(context).translate('end_date')),
                     subtitle:
                         Text('${endDate.year}-${endDate.month}-${endDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
@@ -243,7 +282,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text('取消'),
+                  child: Text(AppLocalizations.of(context).translate('cancel')),
                 ),
                 TextButton(
                   onPressed: () {
@@ -252,7 +291,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           LoadDateRangeStatistics(startDate, endDate),
                         );
                   },
-                  child: const Text('确定'),
+                  child:
+                      Text(AppLocalizations.of(context).translate('confirm')),
                 ),
               ],
             );

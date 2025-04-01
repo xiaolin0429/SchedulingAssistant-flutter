@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/shift_type.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ShiftTypeDistribution extends StatelessWidget {
   final Map<ShiftType, double> shiftTypePercentages;
@@ -20,9 +21,9 @@ class ShiftTypeDistribution extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '班次类型分布',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context).translate('shift_type_distribution'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -35,7 +36,10 @@ class ShiftTypeDistribution extends StatelessWidget {
                 entry.key.colorValue,
               ),
             ),
-            if (shiftTypePercentages.isEmpty) const Center(child: Text('暂无数据')),
+            if (shiftTypePercentages.isEmpty)
+              Center(
+                  child:
+                      Text(AppLocalizations.of(context).translate('no_data'))),
           ],
         ),
       ),
@@ -44,7 +48,7 @@ class ShiftTypeDistribution extends StatelessWidget {
 
   Widget _buildDistributionItem(String label, String value, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         children: [
           Container(
@@ -56,18 +60,12 @@ class ShiftTypeDistribution extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-              ),
-            ),
-          ),
+          Text(label, style: const TextStyle(fontSize: 14)),
+          const Spacer(),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import '../../data/models/shift.dart';
+import '../../core/localization/app_localizations.dart';
 
 class ShiftCalendar extends StatelessWidget {
   final DateTime selectedDate;
@@ -16,6 +18,9 @@ class ShiftCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 获取当前语言环境
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Card(
       child: TableCalendar(
         firstDay: DateTime.utc(2024, 1, 1),
@@ -35,6 +40,9 @@ class ShiftCalendar extends StatelessWidget {
               .where((shift) => isSameDay(DateTime.parse(shift.date), day))
               .toList();
         },
+        locale: locale, // 设置日历本地化语言
+        headerVisible: true, // 显示日历头部
+        // 各种日期构建器
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (context, day, focusedDay) {
             final dayShifts = shifts
@@ -73,6 +81,22 @@ class ShiftCalendar extends StatelessWidget {
               dayShifts,
               isSelected: false,
               isToday: true,
+            );
+          },
+          // 自定义头部构建器，以应用本地化
+          headerTitleBuilder: (context, day) {
+            final headerFormat = DateFormat(
+              AppLocalizations.of(context).translate('date_format_year_month'),
+              locale,
+            );
+            return Center(
+              child: Text(
+                headerFormat.format(day),
+                style: const TextStyle(
+                  fontSize: 17.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             );
           },
         ),

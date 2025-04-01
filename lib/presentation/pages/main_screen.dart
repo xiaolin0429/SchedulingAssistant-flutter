@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/di/injection_container.dart' as di;
 import '../../presentation/blocs/statistics/statistics_bloc.dart';
 import '../../presentation/blocs/statistics/statistics_event.dart';
+import '../../presentation/blocs/alarm/alarm_bloc.dart';
 import '../../core/localization/app_text.dart';
 import 'home/home_page.dart';
 import 'shift_types/shift_types_page.dart';
@@ -24,10 +25,18 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     const ShiftTypesPage(),
-    const AlarmPage(),
-    // 使用BlocProvider包装StatisticsPage
-    BlocProvider<StatisticsBloc>(
-      create: (_) => di.getIt<StatisticsBloc>(),
+    BlocProvider(
+      create: (context) => di.getIt<AlarmBloc>(),
+      child: const AlarmPage(),
+    ),
+    BlocProvider(
+      create: (context) {
+        final bloc = di.getIt<StatisticsBloc>();
+        // 获取当前年月
+        final now = DateTime.now();
+        bloc.add(LoadMonthlyStatistics(now.year, now.month));
+        return bloc;
+      },
       child: const StatisticsPage(),
     ),
     const ProfilePage(),

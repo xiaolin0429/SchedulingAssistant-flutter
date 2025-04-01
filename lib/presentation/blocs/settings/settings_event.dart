@@ -22,11 +22,12 @@ class UpdateThemeMode extends SettingsEvent {
 
 class UpdateNotifications extends SettingsEvent {
   final bool enabled;
+  final dynamic alarmBloc;
 
-  const UpdateNotifications(this.enabled);
+  const UpdateNotifications(this.enabled, {this.alarmBloc});
 
   @override
-  List<Object> get props => [enabled];
+  List<Object?> get props => [enabled, alarmBloc];
 }
 
 class UpdateSyncWithSystemAlarm extends SettingsEvent {
@@ -75,4 +76,4 @@ class PerformBackup extends SettingsEvent {
 
 class ResetSettings extends SettingsEvent {
   const ResetSettings();
-} 
+}

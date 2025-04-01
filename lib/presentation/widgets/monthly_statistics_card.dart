@@ -145,7 +145,7 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
     final List<PieChartSectionData> sections = [];
     int i = 0;
 
-    distribution.entries.forEach((entry) {
+    for (var entry in distribution.entries) {
       final index = i % colors.length;
       final percentage = (entry.value / total * 100).toStringAsFixed(1);
       final isTouched = i == _touchedIndex;
@@ -165,7 +165,7 @@ class _MonthlyStatisticsCardState extends State<MonthlyStatisticsCard> {
         ),
       );
       i++;
-    });
+    }
 
     return sections;
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/notifications/notification_service.dart';
+import 'domain/services/alarm_service.dart';
 import 'presentation/blocs/home/home_bloc.dart';
 import 'presentation/blocs/home/home_event.dart';
 import 'presentation/blocs/shift/shift_bloc.dart';
@@ -19,7 +21,18 @@ import 'core/themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化依赖注入
   await di.initDependencies();
+
+  // 确保通知服务已初始化
+  final notificationService = di.getIt<NotificationService>();
+  await notificationService.initialize(); // 如果已初始化，该方法会自动返回
+
+  // 在启动时重新调度所有闹钟通知
+  final alarmService = di.getIt<AlarmService>();
+  await alarmService.rescheduleAllAlarms();
+
   runApp(const MyApp());
 }
 
