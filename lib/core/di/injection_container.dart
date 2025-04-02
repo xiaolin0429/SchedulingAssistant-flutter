@@ -80,6 +80,8 @@ Future<void> initDependencies() async {
     () => ShiftTypeBloc(getIt<ShiftTypeRepository>()),
   );
 
+  // 保留AlarmBloc注册，但内部的服务禁用了闹钟功能
+  // 这样可以确保系统中其他依赖AlarmBloc的地方不会崩溃
   getIt.registerFactory<AlarmBloc>(
     () => AlarmBloc(getIt<AlarmService>()),
   );
@@ -92,8 +94,13 @@ Future<void> initDependencies() async {
     () => SettingsService(getIt<SettingsRepository>()),
   );
   getIt.registerLazySingleton<BackupService>(() => BackupService());
-  getIt.registerLazySingleton<AlarmService>(() =>
-      AlarmService(getIt<AlarmRepository>(), getIt<NotificationService>()));
+
+  // 保留AlarmService注册，但通知服务设置为禁用闹钟功能
+  getIt.registerLazySingleton<AlarmService>(() {
+    final service =
+        AlarmService(getIt<AlarmRepository>(), getIt<NotificationService>());
+    return service;
+  });
 
   // Blocs
   getIt.registerFactory<BackupBloc>(() => BackupBloc(getIt()));

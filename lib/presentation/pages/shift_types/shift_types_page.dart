@@ -139,6 +139,8 @@ class ShiftTypeCard extends StatelessWidget {
   }
 
   void _showShiftTypeOptions(BuildContext context, ShiftType shiftType) {
+    final localizations = AppLocalizations.of(context);
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -148,7 +150,7 @@ class ShiftTypeCard extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.edit),
-                title: const Text('编辑'),
+                title: Text(localizations.translate('shift_type_edit')),
                 onTap: () {
                   Navigator.pop(context);
                   showDialog(
@@ -159,7 +161,8 @@ class ShiftTypeCard extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('删除', style: TextStyle(color: Colors.red)),
+                title: Text(localizations.translate('shift_type_delete'),
+                    style: const TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(context);
                   _showDeleteConfirmation(context, shiftType);
@@ -173,16 +176,20 @@ class ShiftTypeCard extends StatelessWidget {
   }
 
   void _showDeleteConfirmation(BuildContext context, ShiftType shiftType) {
+    final localizations = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('删除班次类型'),
-          content: Text('确定要删除"${shiftType.name}"班次类型吗？'),
+          title: Text(localizations.translate('shift_type_delete')),
+          content: Text(localizations
+              .translate('shift_type_delete_confirm')
+              .replaceAll('{name}', shiftType.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(localizations.translate('shift_type_cancel')),
             ),
             TextButton(
               onPressed: () {
@@ -193,7 +200,8 @@ class ShiftTypeCard extends StatelessWidget {
                       .add(DeleteShiftType(shiftType.id!));
                 }
               },
-              child: const Text('删除', style: TextStyle(color: Colors.red)),
+              child: Text(localizations.translate('delete'),
+                  style: const TextStyle(color: Colors.red)),
             ),
           ],
         );

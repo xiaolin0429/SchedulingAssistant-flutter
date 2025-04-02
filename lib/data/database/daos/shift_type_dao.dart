@@ -89,7 +89,8 @@ class ShiftTypeDao {
       debugPrint('当前班次类型数量: $count');
       if (count == 0) {
         debugPrint('开始初始化预设班次类型...');
-        for (final type in ShiftType.presets) {
+        final defaultPresets = ShiftType.getPresets();
+        for (final type in defaultPresets) {
           final id = await insertShiftType(type);
           debugPrint('插入预设班次类型: ${type.name}, ID: $id');
         }

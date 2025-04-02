@@ -41,10 +41,19 @@ class NotificationService {
   // 通知权限状态
   bool _hasNotificationPermission = false;
 
+  // 闹钟功能是否启用 - 新增功能开关
+  bool _alarmFeaturesEnabled = true;
+
   // 通知回调处理
   Function(String?)? onNotificationTap;
 
   NotificationService._internal();
+
+  /// 设置闹钟功能开关
+  void setAlarmFeaturesEnabled(bool enabled) {
+    _alarmFeaturesEnabled = enabled;
+    debugPrint('闹钟功能已${enabled ? '启用' : '禁用'}');
+  }
 
   /// 初始化通知服务
   Future<void> initialize() async {
@@ -89,8 +98,10 @@ class NotificationService {
       _isInitialized = true;
       debugPrint('通知服务初始化完成');
 
-      // 初始化后检查权限状态，但不自动请求权限
-      _hasNotificationPermission = await checkPermissions();
+      // 不在初始化时检查权限状态，避免触发权限对话框
+      // 权限检查将仅在用户主动使用通知功能时执行
+      _hasNotificationPermission = false; // 默认假设没有权限，直到用户主动请求
+      debugPrint('通知服务初始化完成，权限状态将在需要时检查');
     } catch (e) {
       debugPrint('通知服务初始化失败: $e');
     }
@@ -160,7 +171,7 @@ class NotificationService {
       bool permissionResult = false;
 
       if (Platform.isIOS) {
-        // iOS检查权限状态
+        // iOS上强制检查权限状态
         final IOSFlutterLocalNotificationsPlugin? iOSPlugin =
             flutterLocalNotificationsPlugin
                 .resolvePlatformSpecificImplementation<
@@ -171,14 +182,27 @@ class NotificationService {
           return false;
         }
 
-        // iOS 10+使用这种方式检查
-        final bool? permissionStatus = await iOSPlugin.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        permissionResult = permissionStatus ?? false;
-        debugPrint('iOS通知权限状态: $permissionResult');
+        // 在iOS上，即使检查权限状态也可能会触发系统权限请求对话框
+        // 我们选择不在这个方法中触发权限请求，而是返回false以便在需要时通过requestPermissions触发
+        try {
+          // 检查SharedPreferences中缓存的权限状态
+          final prefs = await SharedPreferences.getInstance();
+          final cachedPermissionStatus =
+              prefs.getBool('notification_permission_granted');
+
+          // 如果有缓存状态且为true，则返回true，否则返回false
+          if (cachedPermissionStatus == true) {
+            debugPrint('iOS通知权限已被缓存为允许状态');
+            return true;
+          }
+
+          // 如果缓存状态不存在或为false，就假设没有权限
+          debugPrint('iOS通知权限状态无效或缓存为false，将重新请求权限');
+          return false;
+        } catch (e) {
+          debugPrint('检查iOS通知权限状态失败: $e');
+          return false;
+        }
       } else if (Platform.isAndroid) {
         // Android 13+ 需要检查权限
         if (await _isAndroid13OrHigher()) {
@@ -229,6 +253,8 @@ class NotificationService {
         await initialize();
       }
 
+      debugPrint('强制请求通知权限');
+
       if (Platform.isIOS) {
         // iOS权限请求
         final IOSFlutterLocalNotificationsPlugin? iOSPlugin =
@@ -237,6 +263,7 @@ class NotificationService {
                     IOSFlutterLocalNotificationsPlugin>();
 
         if (iOSPlugin != null) {
+          debugPrint('调用iOS原生权限请求...');
           // 请求通知权限，包括声音、通知和徽章
           final bool? result = await iOSPlugin.requestPermissions(
             alert: true,
@@ -244,8 +271,22 @@ class NotificationService {
             sound: true,
             critical: true, // 关键通知（闹钟类）
           );
-          _hasNotificationPermission = result ?? false;
-          return _hasNotificationPermission;
+
+          final bool hasPermission = result ?? false;
+          _hasNotificationPermission = hasPermission;
+
+          // 缓存权限结果
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool(
+                'notification_permission_granted', hasPermission);
+            debugPrint('已缓存iOS通知权限状态: $hasPermission');
+          } catch (e) {
+            debugPrint('缓存iOS通知权限状态失败: $e');
+          }
+
+          debugPrint('iOS通知权限请求结果: $hasPermission');
+          return hasPermission;
         }
       } else if (Platform.isAndroid) {
         // Android权限处理
@@ -293,12 +334,45 @@ class NotificationService {
       if (Platform.isAndroid && await _isAndroid12OrHigher()) {
         final hasPermission = await _checkExactAlarmPermission();
         if (!hasPermission) {
-          await _alarmChannel.invokeMethod('openAlarmSettings');
+          // 提示用户需要打开精确闹钟权限
+          debugPrint('需要精确闹钟权限，打开系统设置');
+          final result = await _alarmChannel.invokeMethod('openAlarmSettings');
+          debugPrint('打开闹钟设置结果: $result');
         }
       }
     } on PlatformException catch (e) {
       debugPrint('请求精确闹钟权限失败: ${e.message}');
     }
+  }
+
+  /// 检查并申请通知权限（如果需要）
+  /// 返回是否已获得权限
+  Future<bool> ensureNotificationPermission() async {
+    // 重置权限状态，避免错误地认为已有权限
+    _hasNotificationPermission = false;
+
+    // 强制检查权限状态
+    _hasNotificationPermission = await checkPermissions();
+
+    if (_hasNotificationPermission) {
+      debugPrint('检查到已有通知权限，无需申请');
+      return true;
+    }
+
+    // 不论之前是否已尝试过，都强制申请权限
+    debugPrint('正在申请通知权限...');
+    final granted = await requestPermissions();
+    if (granted) {
+      debugPrint('通知权限申请成功');
+      // 在Android平台上，还需要检查精确闹钟权限
+      if (Platform.isAndroid && await _isAndroid12OrHigher()) {
+        await _requestExactAlarmPermission();
+      }
+    } else {
+      debugPrint('用户拒绝通知权限');
+    }
+
+    return granted;
   }
 
   /// 打开应用设置页面（用于用户手动开启权限）
@@ -313,7 +387,7 @@ class NotificationService {
     try {
       // 使用与SettingsRepository相同的键名
       final prefs = await SharedPreferences.getInstance();
-      final enabled = prefs.getBool('notification_enabled') ?? true;
+      final enabled = prefs.getBool('notification_enabled') ?? false;
       debugPrint('检查通知设置状态: $enabled');
       return enabled;
     } catch (e) {
@@ -343,10 +417,9 @@ class NotificationService {
       return;
     }
 
-    // 检查权限，但不自动请求权限
-    debugPrint('通知权限状态: $_hasNotificationPermission');
-    if (!_hasNotificationPermission) {
-      debugPrint('通知权限未授予，无法显示通知');
+    // 检查并申请通知权限
+    if (!await ensureNotificationPermission()) {
+      debugPrint('无法获取通知权限，无法显示通知');
       return;
     }
 
@@ -371,14 +444,18 @@ class NotificationService {
             : null,
       );
 
+      // 增强iOS通知配置
       final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        sound: isAlarm ? 'alarm_sound.aiff' : null,
+        // 尝试多种可能的声音文件命名
+        sound: isAlarm ? 'alarm_sound.mp3' : null,
         interruptionLevel: isAlarm
-            ? InterruptionLevel.timeSensitive
+            ? InterruptionLevel.timeSensitive // 闹钟使用时间敏感级别
             : InterruptionLevel.active,
+        threadIdentifier: isAlarm ? 'alarm' : 'general', // 分组通知
+        categoryIdentifier: isAlarm ? 'alarm_category' : 'message', // 通知类别
       );
 
       final NotificationDetails notificationDetails = NotificationDetails(
@@ -401,6 +478,53 @@ class NotificationService {
     }
   }
 
+  /// 获取下一个时间点实例（用于每日重复）
+  tz.TZDateTime _nextInstanceOfTime(DateTime time) {
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    debugPrint('当前时间: ${now.toString()}');
+    debugPrint('输入的闹钟时间: ${time.toString()}');
+
+    // 提取时分秒
+    final int hour = time.hour;
+    final int minute = time.minute;
+    final int second = time.second;
+    debugPrint('提取的时间组件: $hour:$minute:$second');
+
+    // 创建今天的时间点
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+      second,
+    );
+
+    debugPrint('初始计算的闹钟时间: ${scheduledDate.toString()}');
+
+    // 如果今天的这个时间点已经过去，则安排到明天
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+      debugPrint('时间已过去，调整到明天: ${scheduledDate.toString()}');
+    }
+
+    // 计算时间差（分钟）
+    int minutesUntilAlarm = scheduledDate.difference(now).inMinutes;
+    int hoursUntilAlarm = minutesUntilAlarm ~/ 60;
+    int remainingMinutes = minutesUntilAlarm % 60;
+
+    debugPrint(
+        '闹钟将在 $hoursUntilAlarm 小时 $remainingMinutes 分钟后触发 (总计 $minutesUntilAlarm 分钟)');
+
+    // 再次验证闹钟时间是否合理
+    if (hoursUntilAlarm > 23) {
+      debugPrint('警告: 计算的小时数过大(${hoursUntilAlarm}h)，可能存在时间计算错误');
+    }
+
+    return scheduledDate;
+  }
+
   /// 安排定时通知（闹钟）
   Future<void> scheduleAlarm({
     required int id,
@@ -411,9 +535,20 @@ class NotificationService {
     bool repeatDaily = false,
     List<int>? weekdays,
   }) async {
+    // 检查闹钟功能是否已禁用
+    if (!_alarmFeaturesEnabled) {
+      debugPrint('闹钟功能已禁用，不安排闹钟通知');
+      return;
+    }
+
     if (!_isInitialized) {
       await initialize();
     }
+
+    // 输出原始设置时间，以便于调试
+    debugPrint('原始闹钟设置时间: ${scheduledTime.toString()}');
+    debugPrint(
+        '设置的时间组件 - 小时: ${scheduledTime.hour}, 分钟: ${scheduledTime.minute}');
 
     // 检查用户是否启用了通知
     final notificationEnabled = await isNotificationEnabled();
@@ -424,13 +559,23 @@ class NotificationService {
       return;
     }
 
-    // 检查权限，但不自动请求权限
-    if (!_hasNotificationPermission) {
-      debugPrint('通知权限未授予，无法安排闹钟通知');
+    // 检查并申请通知权限
+    final hasPermission = await ensureNotificationPermission();
+    if (!hasPermission) {
+      debugPrint('无法获取通知权限，无法安排闹钟通知');
+      // 这里可以添加一些用户可见的提示，告诉用户需要开启通知权限
       return;
     }
 
     try {
+      // 在iOS上使用特殊处理
+      if (Platform.isIOS) {
+        debugPrint('iOS平台：使用修改后的闹钟调度方案');
+        await _scheduleIOSAlarm(
+            id, title, body, scheduledTime, payload, repeatDaily, weekdays);
+        return;
+      }
+
       // 在Android上使用原生AlarmManager以确保准确触发
       if (Platform.isAndroid) {
         final bool useNativeAlarm = await _shouldUseNativeAlarm();
@@ -451,6 +596,172 @@ class NotificationService {
     }
   }
 
+  /// 专门针对iOS平台的闹钟调度方法
+  Future<void> _scheduleIOSAlarm(
+    int id,
+    String title,
+    String body,
+    DateTime scheduledTime,
+    String? payload,
+    bool repeatDaily,
+    List<int>? weekdays,
+  ) async {
+    // 检查闹钟功能是否已禁用
+    if (!_alarmFeaturesEnabled) {
+      debugPrint('闹钟功能已禁用，不安排iOS闹钟通知');
+      return;
+    }
+
+    // 获取正确的触发时间
+    final tz.TZDateTime correctScheduledDate =
+        _nextInstanceOfTime(scheduledTime);
+    debugPrint(
+        'iOS闹钟计划时间: ${scheduledTime.toString()}, 调整后时间: ${correctScheduledDate.toString()}');
+
+    // 格式化显示时间，便于用户理解
+    final String formattedTime =
+        '${correctScheduledDate.hour.toString().padLeft(2, '0')}:${correctScheduledDate.minute.toString().padLeft(2, '0')}';
+    final bool isToday = correctScheduledDate.day == DateTime.now().day;
+
+    // 准备确认通知的文本
+    String confirmationTitle = '闹钟已设置';
+    String confirmationBody;
+
+    if (isToday) {
+      confirmationBody = '闹钟将于今天 $formattedTime 提醒';
+    } else {
+      confirmationBody = '闹钟将于明天 $formattedTime 提醒';
+    }
+
+    // 计算与当前时间的差异（以分钟为单位，更精确）
+    final now = tz.TZDateTime.now(tz.local);
+    final int minutesUntilAlarm =
+        correctScheduledDate.difference(now).inMinutes;
+    final int hoursUntilAlarm = minutesUntilAlarm ~/ 60;
+    final int remainingMinutes = minutesUntilAlarm % 60;
+
+    debugPrint(
+        'iOS闹钟将在 $hoursUntilAlarm 小时 $remainingMinutes 分钟后触发 (总计 $minutesUntilAlarm 分钟)');
+
+    // 如果时间差大于一天，iOS可能不会可靠地触发通知
+    if (minutesUntilAlarm > 1440) {
+      // 24小时 * 60分钟 = 1440分钟
+      debugPrint('警告：iOS闹钟设置时间超过24小时，可能不会可靠触发');
+    }
+
+    // 创建iOS专用的通知详情
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      sound: 'alarm_sound.mp3',
+      interruptionLevel: InterruptionLevel.timeSensitive,
+      threadIdentifier: 'alarm',
+      categoryIdentifier: 'alarm_category',
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      iOS: iosDetails,
+      android: null, // 因为这是iOS专用方法，所以这里为空
+    );
+
+    // 取消之前的相同ID通知（如果存在）
+    await flutterLocalNotificationsPlugin.cancel(id);
+
+    // 显示即将到来的闹钟信息
+    debugPrint(
+        'iOS通知设置详情: ID=$id, 标题=$title, 内容=$body, 时间=${correctScheduledDate.toString()}');
+
+    // 根据重复配置安排通知
+    if (repeatDaily) {
+      // 每天重复
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        correctScheduledDate,
+        notificationDetails,
+        androidScheduleMode:
+            AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: payload ?? 'alarm_$id',
+      );
+      debugPrint(
+          'iOS每日重复闹钟已设置：$title，时间：${scheduledTime.hour}:${scheduledTime.minute}');
+    } else if (weekdays != null && weekdays.isNotEmpty) {
+      // 特定日期重复（如每周一、三、五）
+      for (int weekday in weekdays) {
+        final repeatDate = _nextInstanceOfWeekday(scheduledTime, weekday);
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          id + weekday, // 使用不同ID避免冲突
+          title,
+          body,
+          repeatDate,
+          notificationDetails,
+          androidScheduleMode:
+              AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          payload: payload ?? 'alarm_${id}_$weekday',
+        );
+      }
+      debugPrint('iOS每周重复闹钟已设置：$title，指定星期：$weekdays');
+    } else {
+      // 单次通知
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        correctScheduledDate,
+        notificationDetails,
+        androidScheduleMode:
+            AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
+        payload: payload ?? 'alarm_$id',
+      );
+      debugPrint('iOS单次闹钟已设置：$title，调整后时间：$correctScheduledDate');
+
+      // 作为双重保障，也使用立即通知 + 倒计时方式
+      if (minutesUntilAlarm < 1440) {
+        // 仅对24小时内的闹钟使用此方法
+        // 创建一个立即触发但仅在锁屏时显示的提示通知
+        await showNotification(
+          id: id + 10000, // 使用不同ID避免冲突
+          title: confirmationTitle,
+          body: confirmationBody,
+          payload: 'pending_alarm_$id',
+        );
+        debugPrint('iOS发送了闹钟确认通知: $confirmationBody');
+      }
+    }
+  }
+
+  /// 格式化持续时间为可读字符串（直接使用小时和分钟）
+  String _formatDuration(int hours, int minutes) {
+    final List<String> parts = [];
+
+    // 验证时间是否合理，超过24小时的时间可能是计算错误
+    if (hours >= 24) {
+      // 转换为更易理解的格式 - 天数和小时
+      final int days = hours ~/ 24;
+      final int remainingHours = hours % 24;
+
+      if (days > 0) parts.add('$days天');
+      if (remainingHours > 0) parts.add('$remainingHours小时');
+    } else {
+      // 正常显示小时
+      if (hours > 0) parts.add('$hours小时');
+    }
+
+    // 始终显示分钟，即使是0分钟
+    if (minutes > 0 || parts.isEmpty) parts.add('$minutes分钟');
+
+    // 如果没有任何部分（极少数情况），显示"马上"
+    if (parts.isEmpty) {
+      return "马上";
+    }
+
+    return parts.join(' ');
+  }
+
   /// 使用Flutter Local Notifications调度闹钟
   Future<void> _schedulePlatformAlarm(
     int id,
@@ -461,11 +772,26 @@ class NotificationService {
     bool repeatDaily,
     List<int>? weekdays,
   ) async {
+    // 检查闹钟功能是否已禁用
+    if (!_alarmFeaturesEnabled) {
+      debugPrint('闹钟功能已禁用，不安排平台闹钟通知');
+      return;
+    }
+
     // 获取正确的触发时间
     final tz.TZDateTime correctScheduledDate =
         _nextInstanceOfTime(scheduledTime);
     debugPrint(
         '闹钟计划时间: ${scheduledTime.toString()}, 调整后时间: ${correctScheduledDate.toString()}');
+
+    // 计算与当前时间的差异（以分钟为单位）
+    final now = tz.TZDateTime.now(tz.local);
+    final int minutesUntilAlarm =
+        correctScheduledDate.difference(now).inMinutes;
+    final int hoursUntilAlarm = minutesUntilAlarm ~/ 60;
+    final int remainingMinutes = minutesUntilAlarm % 60;
+
+    debugPrint('闹钟将在 $hoursUntilAlarm 小时 $remainingMinutes 分钟后触发');
 
     // 闹钟通知详情 - Android
     const AndroidNotificationDetails androidDetails =
@@ -483,13 +809,17 @@ class NotificationService {
       sound: RawResourceAndroidNotificationSound('alarm_sound'),
     );
 
-    // 闹钟通知详情 - iOS
+    // 更新iOS通知详情以确保声音能够正确播放
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
-      sound: 'alarm_sound.aiff',
+      sound: 'alarm_sound.mp3', // 确保与项目中的文件名匹配
+      // 如果自定义声音无法工作，可以尝试系统声音
+      // sound: 'alarm.caf',
       interruptionLevel: InterruptionLevel.timeSensitive, // 时间敏感中断级别
+      threadIdentifier: 'alarm', // 用于分组通知
+      categoryIdentifier: 'alarm_category', // 通知类别标识符
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
@@ -499,6 +829,11 @@ class NotificationService {
 
     // 取消之前的相同ID通知（如果存在）
     await flutterLocalNotificationsPlugin.cancel(id);
+
+    // 在iOS上特别记录通知
+    if (Platform.isIOS) {
+      debugPrint('在iOS上调度闹钟通知，ID: $id, 时间: $correctScheduledDate');
+    }
 
     // 根据重复配置安排通知
     if (repeatDaily) {
@@ -542,6 +877,20 @@ class NotificationService {
         payload: payload,
       );
       debugPrint('单次闹钟已设置：$title，调整后时间：$correctScheduledDate');
+
+      // 对于非iOS平台，也发送一个确认通知作为双重保障
+      if (Platform.isAndroid && minutesUntilAlarm < 1440) {
+        // 仅对24小时内的闹钟
+        final pendingMessage =
+            '闹钟已设置，将在 ${_formatDuration(hoursUntilAlarm, remainingMinutes)} 后提醒';
+        await showNotification(
+          id: id + 10000, // 使用不同ID避免冲突
+          title: '闹钟已设置',
+          body: pendingMessage,
+          payload: 'pending_alarm_$id',
+        );
+        debugPrint('Android发送了闹钟确认通知: $pendingMessage');
+      }
     }
   }
 
@@ -554,6 +903,12 @@ class NotificationService {
     bool repeatDaily,
     List<int>? weekdays,
   ) async {
+    // 检查闹钟功能是否已禁用
+    if (!_alarmFeaturesEnabled) {
+      debugPrint('闹钟功能已禁用，不安排原生闹钟通知');
+      return;
+    }
+
     try {
       // 计算下一个有效的触发时间
       final DateTime now = DateTime.now();
@@ -682,26 +1037,6 @@ class NotificationService {
     }
   }
 
-  /// 获取下一个时间点实例（用于每日重复）
-  tz.TZDateTime _nextInstanceOfTime(DateTime time) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-      time.second,
-    );
-
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-
-    return scheduledDate;
-  }
-
   /// 获取下一个指定工作日的时间（用于每周特定日期重复）
   tz.TZDateTime _nextInstanceOfWeekday(DateTime time, int weekday) {
     // 注意：weekday 1-7 对应周一到周日
@@ -712,5 +1047,91 @@ class NotificationService {
     }
 
     return scheduledDate;
+  }
+
+  /// 用户明确开启通知功能后调用，强制请求权限
+  /// 这个方法会在用户打开通知开关时调用，会直接触发系统权限请求对话框
+  Future<bool> requestPermissionsWhenEnabled() async {
+    debugPrint('用户主动启用通知功能，开始请求系统权限');
+
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    // 无论当前权限状态如何，都强制请求权限
+    bool result = false;
+
+    try {
+      if (Platform.isIOS) {
+        // iOS权限请求
+        final IOSFlutterLocalNotificationsPlugin? iOSPlugin =
+            flutterLocalNotificationsPlugin
+                .resolvePlatformSpecificImplementation<
+                    IOSFlutterLocalNotificationsPlugin>();
+
+        if (iOSPlugin != null) {
+          debugPrint('开始请求iOS通知权限');
+          // 请求通知权限，包括声音、通知和徽章
+          final bool? permissionResult = await iOSPlugin.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+            critical: true, // 关键通知（闹钟类）
+          );
+          result = permissionResult ?? false;
+          debugPrint('iOS通知权限请求结果: $result');
+
+          // 将权限状态缓存到SharedPreferences
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('notification_permission_granted', result);
+            debugPrint('iOS通知权限状态已缓存: $result');
+          } catch (e) {
+            debugPrint('缓存iOS通知权限状态失败: $e');
+          }
+        }
+      } else if (Platform.isAndroid) {
+        // Android权限处理
+        if (await _isAndroid13OrHigher()) {
+          debugPrint('开始请求Android通知权限');
+          final status = await Permission.notification.request();
+          result = status.isGranted;
+          debugPrint('Android通知权限请求结果: $result (${status.name})');
+
+          // 对于Android，也缓存权限状态
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('notification_permission_granted', result);
+            debugPrint('Android通知权限状态已缓存: $result');
+          } catch (e) {
+            debugPrint('缓存Android通知权限状态失败: $e');
+          }
+        } else {
+          // Android 12及以下版本不需要特殊权限请求
+          result = true;
+
+          // Android 12及以下自动拥有通知权限，也进行缓存
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('notification_permission_granted', true);
+            debugPrint('Android低版本通知权限状态已缓存: true');
+          } catch (e) {
+            debugPrint('缓存Android低版本通知权限状态失败: $e');
+          }
+        }
+
+        // 请求精确闹钟权限（Android 12+）
+        if (result && await _isAndroid12OrHigher()) {
+          await _requestExactAlarmPermission();
+        }
+      }
+
+      // 更新权限状态
+      _hasNotificationPermission = result;
+      return result;
+    } catch (e) {
+      debugPrint('请求通知权限失败: $e');
+      return false;
+    }
   }
 }

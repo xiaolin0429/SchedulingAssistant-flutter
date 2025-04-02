@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/di/injection_container.dart' as di;
 import '../../presentation/blocs/statistics/statistics_bloc.dart';
 import '../../presentation/blocs/statistics/statistics_event.dart';
-import '../../presentation/blocs/alarm/alarm_bloc.dart';
+// import '../../presentation/blocs/alarm/alarm_bloc.dart'; // 注释掉闹钟相关导入
 import '../../core/localization/app_text.dart';
 import 'home/home_page.dart';
 import 'shift_types/shift_types_page.dart';
-import 'alarm/alarm_page.dart';
+// import 'alarm/alarm_page.dart'; // 注释掉闹钟页面导入
 import 'statistics/statistics_page.dart';
 import 'profile/profile_page.dart';
 
@@ -25,10 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     const ShiftTypesPage(),
-    BlocProvider(
-      create: (context) => di.getIt<AlarmBloc>(),
-      child: const AlarmPage(),
-    ),
+    // 移除闹钟页面
     BlocProvider(
       create: (context) {
         final bloc = di.getIt<StatisticsBloc>();
@@ -65,10 +62,7 @@ class _MainScreenState extends State<MainScreen> {
             icon: const Icon(Icons.calendar_today),
             label: 'shifts'.trOr(context, '班次'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.alarm),
-            label: 'alarms'.trOr(context, '闹钟'),
-          ),
+          // 移除闹钟导航项
           BottomNavigationBarItem(
             icon: const Icon(Icons.bar_chart),
             label: 'statistics'.trOr(context, '统计'),

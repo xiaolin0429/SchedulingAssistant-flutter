@@ -6,12 +6,10 @@ class Environment {
   /// 是否为开发环境
   static bool get isDevelopment {
     bool inDebugMode = false;
-    assert(
-      () {
-        inDebugMode = true;
-        return true;
-      }(),
-    );
+    assert(() {
+      inDebugMode = true;
+      return true;
+    }());
     return inDebugMode;
   }
 
@@ -23,12 +21,12 @@ class Environment {
 
   /// 数据库版本号
   /// 当数据库表结构发生变化时，需要更新此版本号
-  static const int databaseVersion = 103;
+  static const int databaseVersion = 104;
 
   /// 数据库表结构哈希值
   /// 仅在开发环境下使用，用于检测表结构变化
   /// 当修改了表结构（包括表名、字段、索引等）时，需要更新此值
-  static const String _devDatabaseSchemaHash = '20240219_v1';
+  static const String _devDatabaseSchemaHash = '20240402_v3';
 
   /// 获取存储的schema哈希值的key
   static const String _schemaHashKey = 'database_schema_hash';

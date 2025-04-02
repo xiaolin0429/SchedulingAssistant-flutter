@@ -7,6 +7,7 @@ import '../../blocs/alarm/alarm_bloc.dart';
 import '../../blocs/alarm/alarm_event.dart';
 import '../../blocs/alarm/alarm_state.dart';
 import '../../../data/models/alarm.dart';
+import 'dart:io';
 
 class AlarmPage extends StatelessWidget {
   const AlarmPage({super.key});
@@ -110,7 +111,7 @@ class AlarmPage extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return const AddAlarmBottomSheet();
+        return const AlarmBottomSheet();
       },
     );
   }
@@ -172,6 +173,13 @@ class AlarmListItem extends StatelessWidget {
                 context.read<AlarmBloc>().add(ToggleAlarmEnabled(alarm.id!));
               },
             ),
+            // 编辑按钮
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () {
+                _showEditAlarmBottomSheet(context, alarm);
+              },
+            ),
             // 删除按钮
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -216,6 +224,16 @@ class AlarmListItem extends StatelessWidget {
     }
   }
 
+  void _showEditAlarmBottomSheet(BuildContext context, AlarmEntity alarm) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return AlarmBottomSheet(alarm: alarm);
+      },
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context, AlarmEntity alarm) {
     showDialog(
       context: context,
@@ -251,21 +269,47 @@ class AlarmListItem extends StatelessWidget {
   }
 }
 
-class AddAlarmBottomSheet extends StatefulWidget {
-  const AddAlarmBottomSheet({super.key});
+class AlarmBottomSheet extends StatefulWidget {
+  final AlarmEntity? alarm; // 如果为null则是新增，否则是编辑
+
+  const AlarmBottomSheet({super.key, this.alarm});
 
   @override
-  State<AddAlarmBottomSheet> createState() => _AddAlarmBottomSheetState();
+  State<AlarmBottomSheet> createState() => _AlarmBottomSheetState();
 }
 
-class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
-  TimeOfDay _selectedTime = TimeOfDay.now();
-  final List<bool> _weekdays = List.generate(7, (_) => false); // 周一到周日的重复设置
+class _AlarmBottomSheetState extends State<AlarmBottomSheet> {
+  late TimeOfDay _selectedTime;
+  late List<bool> _weekdays; // 周一到周日的重复设置
   bool _syncToSystem = false; // 是否同步到系统闹钟
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
+    _isEditing = widget.alarm != null;
+
+    if (_isEditing) {
+      // 编辑模式初始化
+      final alarmTime =
+          DateTime.fromMillisecondsSinceEpoch(widget.alarm!.timeInMillis);
+      _selectedTime = TimeOfDay(hour: alarmTime.hour, minute: alarmTime.minute);
+
+      // 初始化重复日期
+      _weekdays = List.generate(
+          7,
+          (index) =>
+              widget.alarm!.repeat &&
+              ((widget.alarm!.repeatDays & (1 << index)) != 0));
+
+      // 初始化同步到系统闹钟的状态
+      _syncToSystem = widget.alarm!.syncToSystem;
+    } else {
+      // 新建模式初始化
+      _selectedTime = TimeOfDay.now();
+      _weekdays = List.generate(7, (_) => false);
+    }
+
     _checkNotificationPermission();
   }
 
@@ -278,8 +322,69 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
       _showPermissionDialog();
     }
 
-    setState(() {
-    });
+    setState(() {});
+  }
+
+  // 检查并请求系统闹钟权限
+  Future<void> _checkSystemAlarmPermission() async {
+    final notificationService = di.getIt<NotificationService>();
+
+    // 如果不需要同步到系统闹钟，直接返回
+    if (!_syncToSystem) return;
+
+    try {
+      if (Platform.isAndroid) {
+        // 对于Android，检查精确闹钟权限
+        final hasPermission = await notificationService.checkPermissions();
+        if (!hasPermission && mounted) {
+          // 显示权限请求对话框
+          _showSystemAlarmPermissionDialog();
+        }
+      } else if (Platform.isIOS) {
+        // iOS一般不需要特殊闹钟权限，但需要通知权限
+        final hasNotificationPermission =
+            await notificationService.checkPermissions();
+        if (!hasNotificationPermission && mounted) {
+          _showPermissionDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('检查系统闹钟权限失败: $e');
+    }
+  }
+
+  void _showSystemAlarmPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title:
+            Text(AppLocalizations.of(context).translate('permission_required')),
+        content: Text('为了确保系统闹钟功能正常工作，需要获取精确闹钟权限。请在接下来的系统设置中授予权限。'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _syncToSystem = false; // 用户拒绝授权，关闭同步选项
+              });
+            },
+            child: Text(AppLocalizations.of(context).translate('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+
+              // 调用NotificationService中的方法请求精确闹钟权限
+              final notificationService = di.getIt<NotificationService>();
+              await notificationService.requestPermissions();
+            },
+            child: Text(
+                AppLocalizations.of(context).translate('grant_permission')),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPermissionDialog() {
@@ -323,7 +428,9 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
         children: [
           // 标题栏
           AppBar(
-            title: Text(AppLocalizations.of(context).translate('add_alarm')),
+            title: Text(_isEditing
+                ? AppLocalizations.of(context).translate('edit_alarm')
+                : AppLocalizations.of(context).translate('add_alarm')),
             leading: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.pop(context),
@@ -332,7 +439,7 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
               TextButton(
                 onPressed: () {
                   // 保存闹钟设置到本地存储
-                  _saveAlarm(context);
+                  _saveAlarm();
                 },
                 child: Text(AppLocalizations.of(context).translate('save')),
               ),
@@ -418,6 +525,11 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
               setState(() {
                 _syncToSystem = value;
               });
+
+              if (value) {
+                // 当启用同步系统闹钟时，检查权限
+                _checkSystemAlarmPermission();
+              }
             },
           ),
 
@@ -440,9 +552,11 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
     return AppLocalizations.of(context).translate(weekdayKeys[index]);
   }
 
-  void _saveAlarm(BuildContext context) async {
+  void _saveAlarm() async {
     final notificationService = di.getIt<NotificationService>();
     final hasPermission = await notificationService.checkPermissions();
+
+    debugPrint('保存闹钟，当前权限状态: $hasPermission');
 
     if (!hasPermission) {
       if (mounted) {
@@ -463,8 +577,39 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
       return;
     }
 
+    // 如果启用了同步到系统闹钟，再次检查相关权限
+    if (_syncToSystem) {
+      // 检查系统闹钟权限
+      if (Platform.isAndroid) {
+        final hasExactAlarmPermission =
+            await notificationService.checkPermissions();
+        if (!hasExactAlarmPermission) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('需要精确闹钟权限才能同步到系统闹钟'),
+                duration: const Duration(seconds: 3),
+                action: SnackBarAction(
+                  label: '授权',
+                  onPressed: () async {
+                    await notificationService.requestPermissions();
+
+                    // 权限请求后再次保存
+                    _saveAlarm();
+                  },
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     // 继续保存闹钟逻辑
     final now = DateTime.now();
+    debugPrint('当前时间: $now');
+
     final selectedDateTime = DateTime(
       now.year,
       now.month,
@@ -472,41 +617,152 @@ class _AddAlarmBottomSheetState extends State<AddAlarmBottomSheet> {
       _selectedTime.hour,
       _selectedTime.minute,
     );
+    debugPrint('选择的时间: $selectedDateTime');
 
     // 检查闹钟时间是否有效
+    DateTime effectiveDateTime = selectedDateTime;
     if (!_hasRepeatDay() && selectedDateTime.isBefore(now)) {
       // 对于非重复闹钟，如果时间已过，则设置为明天
-      selectedDateTime.add(const Duration(days: 1));
+      effectiveDateTime = selectedDateTime.add(const Duration(days: 1));
+      debugPrint('时间已过，调整为明天: $effectiveDateTime');
     }
 
-    // 创建闹钟实体
-    final alarm = AlarmEntity(
-      id: null, // 新闹钟，ID为null
-      name: 'Alarm',
-      timeInMillis: selectedDateTime.millisecondsSinceEpoch,
-      repeat: _hasRepeatDay(),
-      repeatDays: _getRepeatDaysBits(),
-      enabled: true,
-      vibrate: true,
-      createTime: DateTime.now().millisecondsSinceEpoch,
-      updateTime: DateTime.now().millisecondsSinceEpoch,
-    );
+    try {
+      if (_isEditing) {
+        // 编辑现有闹钟
+        final updatedAlarm = widget.alarm!.copyWith(
+          timeInMillis: effectiveDateTime.millisecondsSinceEpoch,
+          repeat: _hasRepeatDay(),
+          repeatDays: _getRepeatDaysBits(),
+          enabled: true,
+          syncToSystem: _syncToSystem,
+          updateTime: DateTime.now().millisecondsSinceEpoch,
+        );
+        debugPrint('更新闹钟: $updatedAlarm');
 
-    // 添加闹钟
-    context.read<AlarmBloc>().add(AddAlarm(alarm));
+        if (mounted) {
+          // 更新闹钟
+          context.read<AlarmBloc>().add(UpdateAlarm(updatedAlarm));
+          debugPrint('已分发更新闹钟事件');
 
-    // 关闭底部表单并显示成功提示
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).translate('alarm_added_success'),
+          // 处理系统闹钟同步
+          if (_syncToSystem) {
+            _syncToSystemAlarm(updatedAlarm);
+          }
+
+          // 关闭底部表单并显示成功提示
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).translate('alarm_updated_success'),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // 创建新闹钟
+        final alarm = AlarmEntity(
+          id: null, // 新闹钟，ID为null
+          name: 'Alarm',
+          timeInMillis: effectiveDateTime.millisecondsSinceEpoch,
+          repeat: _hasRepeatDay(),
+          repeatDays: _getRepeatDaysBits(),
+          enabled: true,
+          vibrate: true,
+          syncToSystem: _syncToSystem,
+          createTime: DateTime.now().millisecondsSinceEpoch,
+          updateTime: DateTime.now().millisecondsSinceEpoch,
+        );
+        debugPrint('创建新闹钟: ${alarm.toMap()}');
+
+        if (mounted) {
+          // 添加闹钟
+          context.read<AlarmBloc>().add(AddAlarm(alarm));
+          debugPrint('已分发添加闹钟事件');
+
+          // 关闭底部表单并显示成功提示
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).translate('alarm_added_success'),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('保存闹钟时出错: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('保存闹钟失败: $e'),
+            backgroundColor: Colors.red,
           ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      }
     }
+  }
+
+  // 同步到系统闹钟功能
+  Future<void> _syncToSystemAlarm(AlarmEntity alarm) async {
+    try {
+      final notificationService = di.getIt<NotificationService>();
+
+      // 构建闹钟的基本信息
+      final DateTime alarmTime =
+          DateTime.fromMillisecondsSinceEpoch(alarm.timeInMillis);
+      final String title = alarm.name ?? '闹钟提醒';
+      const String body = '到达设定的闹钟时间了';
+
+      // 根据不同平台实现闹钟同步
+      if (Platform.isAndroid) {
+        // Android平台使用NotificationService中的方法安排原生闹钟
+        // 在notification_service.dart中的scheduleAlarm方法会自动检测并使用原生AlarmManager
+        // 告诉服务这是系统级闹钟
+        await notificationService.scheduleAlarm(
+          id: alarm.id!,
+          title: title,
+          body: body,
+          scheduledTime: alarmTime,
+          repeatDaily: !alarm.repeat,
+          weekdays: _getWeekdaysFromBits(alarm.repeatDays),
+          payload: 'system_alarm_${alarm.id}',
+        );
+
+        debugPrint('Android设备：闹钟已同步到系统, 时间: ${alarmTime.toString()}');
+      } else if (Platform.isIOS) {
+        // iOS平台也可以使用NotificationService中的方法
+        // 在iOS上，通过设置interruptionLevel为timeSensitive来尽可能接近系统级闹钟
+        await notificationService.scheduleAlarm(
+          id: alarm.id!,
+          title: title,
+          body: body,
+          scheduledTime: alarmTime,
+          repeatDaily: !alarm.repeat,
+          weekdays: _getWeekdaysFromBits(alarm.repeatDays),
+          payload: 'system_alarm_${alarm.id}',
+        );
+
+        debugPrint('iOS设备：闹钟已同步到系统, 时间: ${alarmTime.toString()}');
+      }
+    } catch (e) {
+      debugPrint('同步到系统闹钟失败: $e');
+    }
+  }
+
+  // 从位图获取星期几列表
+  List<int> _getWeekdaysFromBits(int repeatDaysBits) {
+    final List<int> weekdays = [];
+    for (int i = 0; i < 7; i++) {
+      if ((repeatDaysBits & (1 << i)) != 0) {
+        weekdays.add(i + 1); // 1-7 表示周一到周日
+      }
+    }
+    return weekdays;
   }
 
   bool _hasRepeatDay() {

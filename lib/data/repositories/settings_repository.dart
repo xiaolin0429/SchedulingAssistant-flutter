@@ -42,12 +42,13 @@ class SettingsRepository {
 
   /// 通知设置
   Future<void> setNotificationEnabled(bool value) async {
-    await _prefs.setBool(_keyNotificationEnabled, value);
-    _settingsController.add(null);
+    // 通知功能已禁用，忽略传入值，始终设置为false
+    await _prefs.setBool('notification_enabled', false);
   }
 
   bool getNotificationEnabled() {
-    return _prefs.getBool(_keyNotificationEnabled) ?? true;
+    // 通知功能已禁用，始终返回false
+    return false;
   }
 
   /// 系统日历同步设置
@@ -113,12 +114,13 @@ class SettingsRepository {
   /// 重置所有设置
   Future<void> resetSettings() async {
     await _prefs.setString(_keyThemeMode, 'system');
-    await _prefs.setBool(_keyNotificationEnabled, true);
+    await _prefs.setBool(_keyNotificationEnabled, false);
     await _prefs.setBool(_keySyncWithSystemCalendar, false);
     await _prefs.setInt(_keyDefaultShiftType, 0);
     await _prefs.setBool(_keyBackupEnabled, false);
     await _prefs.setInt(_keyBackupInterval, 7);
-    await _prefs.setInt(_keyLastBackupTime, DateTime.now().millisecondsSinceEpoch);
+    await _prefs.setInt(
+        _keyLastBackupTime, DateTime.now().millisecondsSinceEpoch);
     await _prefs.setString(_keyLanguage, 'zh');
     _settingsController.add(null);
   }
@@ -188,4 +190,4 @@ class SettingsRepository {
   Future<void> setShowRestDays(bool value) async {
     await _prefs.setBool('showRestDays', value);
   }
-} 
+}

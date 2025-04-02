@@ -78,6 +78,22 @@
   "no_shift_for_note": "No shift information, cannot add note",
 
   "shift_type_management": "Shift Type Management",
+  
+  "shift_type_morning": "Morning Shift",
+  "shift_type_evening": "Evening Shift",
+  "shift_type_rest": "Rest Day",
+  "shift_type_name": "Name",
+  "shift_type_name_hint": "Please enter shift type name",
+  "shift_type_start_time": "Start Time",
+  "shift_type_end_time": "End Time",
+  "shift_type_color": "Color:",
+  "shift_type_add": "Add Shift Type",
+  "shift_type_edit": "Edit Shift Type",
+  "shift_type_delete": "Delete Shift Type",
+  "shift_type_delete_confirm": "Are you sure you want to delete the \"{name}\" shift type?",
+  "shift_type_cancel": "Cancel",
+  "shift_type_save": "Save",
+  "shift_type_choose_color": "Choose Color",
 
   "no_alarm": "No Alarms",
   "add_alarm": "Add Alarm",
@@ -101,6 +117,8 @@
   "delete": "Delete",
   "alarm_added_success": "Alarm added successfully",
   "alarm_deleted": "Alarm deleted",
+  "edit_alarm": "Edit Alarm",
+  "alarm_updated_success": "Alarm updated successfully",
 
   "date_range_select": "Select Date Range",
   "start_date": "Start Date",

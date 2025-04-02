@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/localization/app_localizations.dart';
 
 /// 班次类型模型
 class ShiftType {
@@ -73,8 +74,50 @@ class ShiftType {
   /// 获取颜色对象
   Color get colorValue => Color(color);
 
-  /// 预设的班次类型（可以修改和删除）
-  static const List<ShiftType> presets = [
+  /// 获取预设班次类型（考虑本地化）
+  static List<ShiftType> getPresets([BuildContext? context]) {
+    // 如果没有提供context，使用默认的硬编码名称
+    if (context == null) {
+      return _hardcodedPresets;
+    }
+
+    // 使用本地化名称
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    return [
+      ShiftType.preset(
+        id: 1,
+        name: localizations.translate('shift_type_morning'),
+        startTime: '08:00',
+        endTime: '16:00',
+        color: 0xFF4CAF50, // 绿色
+        isPreset: true,
+        updateTime: 0,
+      ),
+      ShiftType.preset(
+        id: 2,
+        name: localizations.translate('shift_type_evening'),
+        startTime: '16:00',
+        endTime: '00:00',
+        color: 0xFF2196F3, // 蓝色
+        isPreset: true,
+        updateTime: 0,
+      ),
+      ShiftType.preset(
+        id: 3,
+        name: localizations.translate('shift_type_rest'),
+        color: 0xFFFFA726, // 橙色
+        isPreset: true,
+        isRestDay: true,
+        updateTime: 0,
+      ),
+    ];
+  }
+
+  /// 预设的班次类型（可以修改和删除）- 兼容性保留，新代码应使用getPresets()
+  static const List<ShiftType> presets = _hardcodedPresets;
+
+  /// 硬编码的预设班次类型（当没有context时使用）
+  static const List<ShiftType> _hardcodedPresets = [
     ShiftType.preset(
       id: 1,
       name: '早班',

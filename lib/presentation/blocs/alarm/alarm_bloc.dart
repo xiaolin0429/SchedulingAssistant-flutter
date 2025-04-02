@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/services/alarm_service.dart';
 import 'alarm_event.dart';
 import 'alarm_state.dart';
+import 'package:flutter/foundation.dart';
 
 class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
   final AlarmService _alarmService;
@@ -59,8 +60,11 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     Emitter<AlarmState> emit,
   ) async {
     try {
+      debugPrint('AlarmBloc收到添加闹钟事件: ${event.alarm.toMap()}');
       await _alarmService.addAlarm(event.alarm);
+      debugPrint('闹钟添加成功');
     } catch (e) {
+      debugPrint('AlarmBloc添加闹钟失败: $e');
       emit(AlarmError(e.toString()));
     }
   }
@@ -70,8 +74,11 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     Emitter<AlarmState> emit,
   ) async {
     try {
+      debugPrint('AlarmBloc收到更新闹钟事件: ${event.alarm.toMap()}');
       await _alarmService.updateAlarm(event.alarm);
+      debugPrint('闹钟更新成功');
     } catch (e) {
+      debugPrint('AlarmBloc更新闹钟失败: $e');
       emit(AlarmError(e.toString()));
     }
   }

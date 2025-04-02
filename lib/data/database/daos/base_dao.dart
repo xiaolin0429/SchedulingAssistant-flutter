@@ -7,14 +7,21 @@ abstract class BaseDao<T> {
   BaseDao(this.database, this.tableName);
 
   Future<int> insert(Map<String, dynamic> row) async {
-    return await database.insert(
-      tableName,
-      row,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    print('BaseDao开始数据库插入操作: 表=$tableName, 数据=${row.toString()}');
+    try {
+      return await database.insert(
+        tableName,
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      print('BaseDao数据库插入失败: $e');
+      throw Exception('数据库插入操作失败: $e');
+    }
   }
 
-  Future<int> update(Map<String, dynamic> row, String where, List<dynamic> whereArgs) async {
+  Future<int> update(
+      Map<String, dynamic> row, String where, List<dynamic> whereArgs) async {
     return await database.update(
       tableName,
       row,
@@ -68,4 +75,4 @@ abstract class BaseDao<T> {
     );
     return Sqflite.firstIntValue(result);
   }
-} 
+}

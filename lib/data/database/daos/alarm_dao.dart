@@ -127,7 +127,15 @@ class AlarmEntityDao extends BaseDao<AlarmEntity> {
   }
 
   Future<int> insertAlarm(AlarmEntity alarm) async {
-    return await insert(alarm.toMap());
+    try {
+      print('AlarmEntityDao准备插入闹钟: ${alarm.toMap()}');
+      final id = await insert(alarm.toMap());
+      print('AlarmEntityDao插入成功，ID: $id');
+      return id;
+    } catch (e) {
+      print('AlarmEntityDao插入闹钟失败: $e');
+      throw Exception('数据库插入闹钟失败: $e');
+    }
   }
 
   Future<int> updateAlarm(AlarmEntity alarm) async {
@@ -157,4 +165,4 @@ class AlarmEntityDao extends BaseDao<AlarmEntity> {
   Future<int> getAlarmCount() async {
     return await queryCount() ?? 0;
   }
-} 
+}

@@ -45,5 +45,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>我们需要通知权限来发送闹钟提醒</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>我们需要访问日历来设置闹钟提醒</string>
+	<key>NSNotificationsUsageDescription</key>
+	<string>我们需要发送通知以便在闹钟时间到达时提醒您</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
 </dict>
 </plist>

@@ -26,9 +26,16 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
 
   @override
   Future<int> insert(AlarmEntity alarm) async {
-    final id = await _alarmDao.insertAlarm(alarm);
-    getAll(); // 更新流
-    return id;
+    try {
+      print('AlarmRepository准备插入闹钟数据: ${alarm.toMap()}');
+      final id = await _alarmDao.insertAlarm(alarm);
+      print('AlarmRepository闹钟插入成功，ID: $id');
+      getAll(); // 更新流
+      return id;
+    } catch (e) {
+      print('AlarmRepository插入闹钟失败: $e');
+      throw Exception('插入闹钟数据失败: $e');
+    }
   }
 
   @override
@@ -77,9 +84,10 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
     int endTime,
   ) async {
     final alarms = await _alarmDao.getAllAlarms();
-    return alarms.where((alarm) => 
-      alarm.timeInMillis >= startTime && alarm.timeInMillis <= endTime
-    ).toList();
+    return alarms
+        .where((alarm) =>
+            alarm.timeInMillis >= startTime && alarm.timeInMillis <= endTime)
+        .toList();
   }
 
   /// 更新闹钟启用状态
@@ -113,7 +121,7 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
   Future<AlarmEntity?> getNextAlarm() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final alarms = await getEnabledAlarms();
-    
+
     if (alarms.isEmpty) return null;
 
     // 对于重复闹钟，计算下一次触发时间
@@ -122,7 +130,7 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
 
     for (final alarm in alarms) {
       int triggerTime;
-      
+
       if (alarm.repeat) {
         triggerTime = _calculateNextRepeatTime(alarm);
       } else {
@@ -143,7 +151,7 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
   int _calculateNextRepeatTime(AlarmEntity alarm) {
     final now = DateTime.now();
     final alarmTime = DateTime.fromMillisecondsSinceEpoch(alarm.timeInMillis);
-    
+
     // 创建今天的闹钟时间
     final todayAlarmTime = DateTime(
       now.year,
@@ -154,14 +162,15 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
     );
 
     // 如果今天的闹钟时间已过，从明天开始查找
-    final startDay = todayAlarmTime.isBefore(now) ? now.add(const Duration(days: 1)) : now;
-    
+    final startDay =
+        todayAlarmTime.isBefore(now) ? now.add(const Duration(days: 1)) : now;
+
     // 查找下一个重复日
     for (int i = 0; i < 7; i++) {
       final checkDay = startDay.add(Duration(days: i));
       final weekday = checkDay.weekday % 7; // 0-6，0表示周日
       final weekdayBit = 1 << weekday;
-      
+
       if (alarm.repeatDays & weekdayBit != 0) {
         final nextAlarmTime = DateTime(
           checkDay.year,

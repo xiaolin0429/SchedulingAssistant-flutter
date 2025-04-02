@@ -20,21 +20,31 @@ class AlarmService {
 
   // 添加新闹钟
   Future<int> addAlarm(AlarmEntity alarm) async {
+    debugPrint('AlarmService开始添加闹钟: ${alarm.toMap()}');
     // 验证时间是否有效
     if (alarm.timeInMillis < DateTime.now().millisecondsSinceEpoch) {
       throw Exception('闹钟时间不能早于当前时间');
     }
 
-    // 添加到数据库
-    final id = await _alarmRepository.insert(alarm);
+    try {
+      // 添加到数据库
+      debugPrint('准备插入闹钟到数据库');
+      final id = await _alarmRepository.insert(alarm);
+      debugPrint('闹钟成功插入数据库，ID: $id');
 
-    // 如果闹钟已启用，则安排通知
-    final newAlarm = alarm.copyWith(id: id);
-    if (newAlarm.enabled) {
-      await _scheduleAlarmNotification(newAlarm);
+      // 如果闹钟已启用，则安排通知
+      final newAlarm = alarm.copyWith(id: id);
+      if (newAlarm.enabled) {
+        debugPrint('闹钟已启用，安排通知');
+        await _scheduleAlarmNotification(newAlarm);
+        debugPrint('闹钟通知已安排');
+      }
+
+      return id;
+    } catch (e) {
+      debugPrint('添加闹钟失败: $e');
+      throw Exception('添加闹钟失败: $e');
     }
-
-    return id;
   }
 
   // 更新闹钟
@@ -162,6 +172,18 @@ class AlarmService {
   Future<void> _scheduleAlarmNotification(AlarmEntity alarm) async {
     if (alarm.id == null) return;
 
+    // 首先检查通知功能是否已启用
+    if (!await _notificationService.isNotificationEnabled()) {
+      debugPrint('通知功能未启用，不安排闹钟通知');
+      return;
+    }
+
+    // 检查并确保有通知权限
+    if (!await _notificationService.ensureNotificationPermission()) {
+      debugPrint('无法获取通知权限，无法安排闹钟通知');
+      return;
+    }
+
     final DateTime alarmTime =
         DateTime.fromMillisecondsSinceEpoch(alarm.timeInMillis);
 
@@ -210,23 +232,36 @@ class AlarmService {
     }
   }
 
-  // 重新安排所有启用的闹钟通知（应用启动时调用）
+  // 在应用启动时重新调度所有启用的闹钟
   Future<void> rescheduleAllAlarms() async {
-    try {
-      // 先取消所有现有通知
-      await _notificationService.cancelAllNotifications();
+    // 首先检查通知功能是否已启用
+    if (!await _notificationService.isNotificationEnabled()) {
+      debugPrint('通知功能未启用，不重新调度闹钟');
+      return;
+    }
 
+    // 检查并申请通知权限（如果需要）
+    // 注意：此处不强制申请权限，因为应用启动时不应该主动弹出权限请求
+    final hasPermission = await _notificationService.checkPermissions();
+    if (!hasPermission) {
+      debugPrint('无通知权限，不重新调度闹钟通知');
+      return;
+    }
+
+    try {
+      debugPrint('正在重新调度所有闹钟...');
       // 获取所有启用的闹钟
       final alarms = await getEnabledAlarms();
+      // 先取消所有通知
+      await _notificationService.cancelAllNotifications();
 
-      // 重新安排所有启用的闹钟通知
+      // 重新安排每个闹钟的通知
       for (final alarm in alarms) {
         await _scheduleAlarmNotification(alarm);
       }
-
-      debugPrint('已重新安排 ${alarms.length} 个闹钟通知');
+      debugPrint('共重新调度了 ${alarms.length} 个闹钟');
     } catch (e) {
-      debugPrint('重新安排闹钟通知失败: $e');
+      debugPrint('重新调度闹钟时出错: $e');
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../data/models/shift_type.dart';
 import '../blocs/shift_type/shift_type_bloc.dart';
 import '../blocs/shift_type/shift_type_event.dart';
+import '../../core/localization/app_localizations.dart';
 
 class ShiftTypeDialog extends StatefulWidget {
   final ShiftType? shiftType;
@@ -28,7 +29,8 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.shiftType?.name);
-    _startTimeController = TextEditingController(text: widget.shiftType?.startTime);
+    _startTimeController =
+        TextEditingController(text: widget.shiftType?.startTime);
     _endTimeController = TextEditingController(text: widget.shiftType?.endTime);
     _selectedColor = Color(widget.shiftType?.color ?? Colors.blue.toARGB32());
   }
@@ -43,8 +45,12 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     return AlertDialog(
-      title: Text(widget.shiftType == null ? '添加班次类型' : '编辑班次类型'),
+      title: Text(widget.shiftType == null
+          ? localizations.translate('shift_type_add')
+          : localizations.translate('shift_type_edit')),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -53,13 +59,13 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: '名称',
-                  hintText: '请输入班次类型名称',
+                decoration: InputDecoration(
+                  labelText: localizations.translate('shift_type_name'),
+                  hintText: localizations.translate('shift_type_name_hint'),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入名称';
+                    return localizations.translate('shift_type_name_hint');
                   }
                   return null;
                 },
@@ -70,8 +76,9 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _startTimeController,
-                      decoration: const InputDecoration(
-                        labelText: '开始时间',
+                      decoration: InputDecoration(
+                        labelText:
+                            localizations.translate('shift_type_start_time'),
                         hintText: 'HH:mm',
                       ),
                       onTap: () => _selectTime(context, _startTimeController),
@@ -82,8 +89,9 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _endTimeController,
-                      decoration: const InputDecoration(
-                        labelText: '结束时间',
+                      decoration: InputDecoration(
+                        labelText:
+                            localizations.translate('shift_type_end_time'),
                         hintText: 'HH:mm',
                       ),
                       onTap: () => _selectTime(context, _endTimeController),
@@ -95,7 +103,7 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Text('颜色：'),
+                  Text(localizations.translate('shift_type_color')),
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: _showColorPicker,
@@ -120,24 +128,26 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(localizations.translate('shift_type_cancel')),
         ),
         TextButton(
           onPressed: _saveShiftType,
-          child: const Text('保存'),
+          child: Text(localizations.translate('shift_type_save')),
         ),
       ],
     );
   }
 
-  Future<void> _selectTime(BuildContext context, TextEditingController controller) async {
+  Future<void> _selectTime(
+      BuildContext context, TextEditingController controller) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _parseTime(controller.text) ?? TimeOfDay.now(),
     );
 
     if (picked != null) {
-      controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      controller.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
     }
   }
 
@@ -152,12 +162,14 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
   }
 
   void _showColorPicker() {
+    final localizations = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       builder: (context) {
         Color pickerColor = _selectedColor;
         return AlertDialog(
-          title: const Text('选择颜色'),
+          title: Text(localizations.translate('shift_type_choose_color')),
           content: SingleChildScrollView(
             child: ColorPicker(
               pickerColor: pickerColor,
@@ -174,14 +186,14 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(localizations.translate('shift_type_cancel')),
             ),
             TextButton(
               onPressed: () {
                 setState(() => _selectedColor = pickerColor);
                 Navigator.pop(context);
               },
-              child: const Text('确定'),
+              child: Text(localizations.translate('confirm')),
             ),
           ],
         );
@@ -195,7 +207,8 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
     final shiftType = ShiftType(
       id: widget.shiftType?.id,
       name: _nameController.text,
-      startTime: _startTimeController.text.isEmpty ? null : _startTimeController.text,
+      startTime:
+          _startTimeController.text.isEmpty ? null : _startTimeController.text,
       endTime: _endTimeController.text.isEmpty ? null : _endTimeController.text,
       color: _selectedColor.toARGB32(),
       isPreset: widget.shiftType?.isPreset ?? false,
@@ -209,4 +222,4 @@ class _ShiftTypeDialogState extends State<ShiftTypeDialog> {
 
     Navigator.pop(context);
   }
-} 
+}

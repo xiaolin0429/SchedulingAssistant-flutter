@@ -31,7 +31,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit(SettingsLoaded(
         themeMode: _settingsRepository.getThemeMode(),
         language: _settingsRepository.getLanguage(),
-        notificationsEnabled: _settingsRepository.getNotificationEnabled(),
+        notificationsEnabled: false, // 强制设置为false，因为通知功能已禁用
         syncWithSystemCalendar: _settingsRepository.getSyncWithSystemCalendar(),
         defaultShiftType: _settingsRepository.getDefaultShiftType(),
         backupEnabled: _settingsRepository.getBackupEnabled(),
@@ -76,6 +76,16 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       UpdateNotifications event, Emitter<SettingsState> emit) async {
     if (state is SettingsLoaded) {
       try {
+        // 闹钟功能已禁用，始终强制设置为false
+        debugPrint('通知功能已禁用，不执行任何操作');
+        // 仍然更新存储中的设置，以保持数据一致性
+        await _settingsRepository.setNotificationEnabled(false);
+
+        // 发出设置更新事件，始终为false
+        emit((state as SettingsLoaded).copyWith(notificationsEnabled: false));
+
+        // 以下通知权限和闹钟设置相关代码已被禁用
+        /*
         // 记录之前的设置状态
         final bool previousState = _settingsRepository.getNotificationEnabled();
 
@@ -96,8 +106,12 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           if (!previousState) {
             debugPrint('通知状态从关闭变为开启，准备重新检查权限');
 
-            // 重新检查权限状态
-            await _notificationService.checkPermissions();
+            // 用户明确开启通知功能，直接请求权限
+            // 这会在iOS上显示系统权限请求对话框
+            debugPrint('用户主动开启通知功能，请求通知权限');
+            final permissionGranted =
+                await _notificationService.requestPermissionsWhenEnabled();
+            debugPrint('通知权限请求结果: $permissionGranted');
 
             // 通知服务端刷新权限状态
             try {
@@ -114,34 +128,24 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
             }
           }
 
-          // 用户启用通知时请求系统权限
-          // 检查当前权限状态
-          final hasPermission = await _notificationService.checkPermissions();
-
-          // 如果没有权限，则请求权限
-          if (!hasPermission) {
-            debugPrint('用户已启用通知，开始请求系统通知权限');
-            final permissionGranted =
-                await _notificationService.requestPermissions();
-            debugPrint('通知权限请求结果: $permissionGranted');
-
-            // 如果权限请求被拒绝，可以在这里添加额外的逻辑
-            // 如提示用户手动在系统设置中开启权限
-          } else {
-            debugPrint('通知权限已授予，无需重新请求');
-
+          // 检查是否已获得权限，在获得权限的情况下发送测试通知
+          if (await _notificationService.checkPermissions()) {
             // 发送测试通知
+            debugPrint('通知权限已授予，发送测试通知');
             await _notificationService.showNotification(
               id: 9999,
               title: '通知已启用',
               body: '您已成功开启通知功能',
             );
+          } else {
+            debugPrint('未获得通知权限，将在用户授权后才能发送通知');
           }
         } else {
           // 用户关闭通知时取消所有已经设置的通知
           debugPrint('用户已关闭通知，取消所有已设置的通知');
           await _notificationService.cancelAllNotifications();
         }
+        */
       } catch (e) {
         debugPrint('更新通知设置失败: $e');
         emit(SettingsError(e.toString()));
@@ -197,6 +201,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       ResetSettings event, Emitter<SettingsState> emit) async {
     try {
       await _settingsRepository.resetSettings();
+      // 通知功能已禁用，确保重置后通知仍为禁用状态
+      await _settingsRepository.setNotificationEnabled(false);
       add(const LoadSettings());
     } catch (e) {
       emit(SettingsError(e.toString()));

@@ -79,6 +79,22 @@
   "no_shift_for_note": "没有排班信息，无法添加备注",
 
   "shift_type_management": "班次类型管理",
+  
+  "shift_type_morning": "早班",
+  "shift_type_evening": "晚班",
+  "shift_type_rest": "休息",
+  "shift_type_name": "名称",
+  "shift_type_name_hint": "请输入班次类型名称",
+  "shift_type_start_time": "开始时间",
+  "shift_type_end_time": "结束时间",
+  "shift_type_color": "颜色：",
+  "shift_type_add": "添加班次类型",
+  "shift_type_edit": "编辑班次类型",
+  "shift_type_delete": "删除班次类型",
+  "shift_type_delete_confirm": "确定要删除'{name}'班次类型吗？",
+  "shift_type_cancel": "取消",
+  "shift_type_save": "保存",
+  "shift_type_choose_color": "选择颜色",
 
   "no_alarm": "暂无闹钟",
   "add_alarm": "添加闹钟",
@@ -104,6 +120,8 @@
   "delete": "删除",
   "alarm_added_success": "闹钟添加成功",
   "alarm_deleted": "闹钟已删除",
+  "edit_alarm": "编辑闹钟",
+  "alarm_updated_success": "闹钟更新成功",
 
   "date_range_select": "选择日期范围",
   "start_date": "开始日期",

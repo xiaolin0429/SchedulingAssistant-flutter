@@ -38,8 +38,10 @@ class DatabaseProvider {
 
   Future<void> _initDatabase() async {
     try {
-      final String path =
-          join(await getDatabasesPath(), Environment.databaseName);
+      final String path = join(
+        await getDatabasesPath(),
+        Environment.databaseName,
+      );
       debugPrint('数据库路径: $path');
       debugPrint('数据库版本: ${Environment.databaseVersion}');
       debugPrint('环境: ${Environment.isDevelopment ? '开发' : '生产'}');
@@ -62,9 +64,16 @@ class DatabaseProvider {
       );
 
       // 检查数据库表
-      final tables = await _database!.query('sqlite_master',
-          columns: ['name'], where: 'type = ?', whereArgs: ['table']);
+      final tables = await _database!.query(
+        'sqlite_master',
+        columns: ['name'],
+        where: 'type = ?',
+        whereArgs: ['table'],
+      );
       debugPrint('数据库中的表: ${tables.map((t) => t['name']).join(', ')}');
+
+      // 手动检查alarm_entities表中是否有syncToSystem列
+      await _ensureAlarmEntitiesTableColumns(_database!);
 
       debugPrint('数据库初始化完成');
     } catch (e) {
@@ -136,7 +145,8 @@ class DatabaseProvider {
           createTime INTEGER NOT NULL,
           updateTime INTEGER NOT NULL,
           snoozeInterval INTEGER NOT NULL DEFAULT 5,
-          maxSnoozeCount INTEGER NOT NULL DEFAULT 3
+          maxSnoozeCount INTEGER NOT NULL DEFAULT 3,
+          syncToSystem INTEGER NOT NULL DEFAULT 0
         )
       ''');
 
@@ -167,6 +177,10 @@ class DatabaseProvider {
         // 在这里添加数据迁移逻辑
         await _migrateToVersion103(db);
       }
+      if (oldVersion < 104) {
+        // 版本104：为alarm_entities表添加syncToSystem列
+        await _migrateToVersion104(db);
+      }
       // 在这里添加未来版本的迁移逻辑
     } catch (e) {
       debugPrint('数据库升级失败: $e');
@@ -196,6 +210,132 @@ class DatabaseProvider {
       )
     ''');
     debugPrint('版本 103 升级完成');
+  }
+
+  Future<void> _migrateToVersion104(Database db) async {
+    debugPrint('执行版本 104 的升级...');
+    try {
+      // 检查syncToSystem列是否已存在
+      final List<Map<String, dynamic>> columns = await db.rawQuery(
+        "PRAGMA table_info('alarm_entities')",
+      );
+      final syncColumnExists = columns.any(
+        (col) => col['name'] == 'syncToSystem',
+      );
+
+      // 只有当列不存在时才添加
+      if (!syncColumnExists) {
+        await db.execute(
+          'ALTER TABLE alarm_entities ADD COLUMN syncToSystem INTEGER NOT NULL DEFAULT 0',
+        );
+        debugPrint('为alarm_entities表添加syncToSystem列成功');
+      } else {
+        debugPrint('alarm_entities表已有syncToSystem列，跳过');
+      }
+    } catch (e) {
+      debugPrint('添加syncToSystem列失败: $e');
+      rethrow;
+    }
+    debugPrint('版本 104 升级完成');
+  }
+
+  // 确保alarm_entities表中有所有需要的列
+  Future<void> _ensureAlarmEntitiesTableColumns(Database db) async {
+    try {
+      debugPrint('检查alarm_entities表的列...');
+      final List<Map<String, dynamic>> columns = await db.rawQuery(
+        "PRAGMA table_info('alarm_entities')",
+      );
+
+      // 检查每个必要的列是否存在
+      final columnNames = columns.map((col) => col['name'] as String).toList();
+      debugPrint('alarm_entities表的列: $columnNames');
+
+      // 检查syncToSystem列是否存在
+      if (!columnNames.contains('syncToSystem')) {
+        debugPrint('syncToSystem列不存在，尝试添加...');
+        try {
+          await db.execute(
+            'ALTER TABLE alarm_entities ADD COLUMN syncToSystem INTEGER NOT NULL DEFAULT 0',
+          );
+          debugPrint('手动添加syncToSystem列成功');
+        } catch (e) {
+          debugPrint('手动添加syncToSystem列失败: $e');
+
+          // 如果添加列失败，可能是因为表结构有问题，尝试重建表
+          await _recreateAlarmEntitiesTable(db);
+        }
+      } else {
+        debugPrint('syncToSystem列已存在');
+      }
+    } catch (e) {
+      debugPrint('检查alarm_entities表的列失败: $e');
+      // 出错时尝试重建表
+      await _recreateAlarmEntitiesTable(db);
+    }
+  }
+
+  // 重建alarm_entities表
+  Future<void> _recreateAlarmEntitiesTable(Database db) async {
+    debugPrint('开始重建alarm_entities表...');
+    try {
+      // 1. 备份现有数据
+      List<Map<String, dynamic>> existingData = [];
+      try {
+        existingData = await db.query('alarm_entities');
+        debugPrint('已备份${existingData.length}条闹钟数据');
+      } catch (e) {
+        debugPrint('备份数据失败，将创建空表: $e');
+      }
+
+      // 2. 删除旧表
+      try {
+        await db.execute('DROP TABLE IF EXISTS alarm_entities');
+        debugPrint('已删除旧的alarm_entities表');
+      } catch (e) {
+        debugPrint('删除旧表失败: $e');
+      }
+
+      // 3. 创建新表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS alarm_entities (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT,
+          timeInMillis INTEGER NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          repeat INTEGER NOT NULL DEFAULT 0,
+          repeatDays INTEGER NOT NULL DEFAULT 0,
+          soundUri TEXT,
+          vibrate INTEGER NOT NULL DEFAULT 1,
+          createTime INTEGER NOT NULL,
+          updateTime INTEGER NOT NULL,
+          snoozeInterval INTEGER NOT NULL DEFAULT 5,
+          maxSnoozeCount INTEGER NOT NULL DEFAULT 3,
+          syncToSystem INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      debugPrint('已创建新的alarm_entities表');
+
+      // 4. 恢复数据
+      if (existingData.isNotEmpty) {
+        for (var data in existingData) {
+          // 确保data中包含所有必要的字段
+          data.putIfAbsent('syncToSystem', () => 0);
+          try {
+            await db.insert('alarm_entities', data);
+          } catch (e) {
+            debugPrint('恢复数据项失败: $e');
+            // 继续处理下一条数据
+          }
+        }
+        debugPrint('已恢复闹钟数据');
+      }
+
+      debugPrint('alarm_entities表重建完成');
+    } catch (e) {
+      debugPrint('重建alarm_entities表失败: $e');
+      rethrow;
+    }
   }
 
   Future<void> close() async {
