@@ -13,7 +13,7 @@ jobs:
       version: ${{ steps.check.outputs.version }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         
       - name: 检查版本号匹配
         id: check
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         with:
           fetch-depth: 0
       
@@ -62,18 +62,21 @@ jobs:
             PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
             if [ -z "$PREV_TAG" ]; then
               echo "没有找到上一个标签，使用全部提交历史..."
-              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -n 50)
             else
               CHANGELOG=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
             fi
           fi
           
+          # 添加自动生成的更新时间和版本信息
+          FINAL_CHANGELOG="## 排班助手 v$VERSION 发布说明\n\n**发布日期:** $(date +"%Y-%m-%d")\n\n### 更新内容\n\n$CHANGELOG\n\n### 安装说明\n- 点击下方APK下载安装\n- 如遇到安装问题，请卸载旧版本后重新安装"
+          
           # 将变更日志内容保存到文件，以便下一步使用
-          echo "$CHANGELOG" > changelog.txt
+          echo -e "$FINAL_CHANGELOG" > changelog.txt
           cat changelog.txt
           
       - name: 创建Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@9eb00f4b01f0f646ecf10c629c2b0a7c35aa9484 # v0.1.15
         with:
           name: 排班助手 v${{ needs.validate.outputs.version }}
           body_path: changelog.txt

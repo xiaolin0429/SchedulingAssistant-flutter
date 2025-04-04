@@ -14,13 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         
       - name: 设置Flutter环境
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1c5eb12d812966ca84680edc38353a0851c8fd56 # v2.14.0
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
+          cache: true
+          
+      - name: 缓存Pub依赖
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-cache-
           
       - name: 获取依赖
         run: flutter pub get
@@ -31,8 +40,17 @@ jobs:
           if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
             echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
             sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            echo "✅ 已修复Flutter本地通知插件"
+          else
+            echo "⚠️ 未找到FlutterLocalNotificationsPlugin.java文件，跳过修复"
           fi
         
+      - name: 检查资源目录
+        run: |
+          # 确保assets目录存在
+          mkdir -p assets/images
+          echo "已确保assets/images目录存在"
+          
       - name: 分析代码
         run: flutter analyze
   
@@ -42,20 +60,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         
       - name: 设置Flutter环境
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1c5eb12d812966ca84680edc38353a0851c8fd56 # v2.14.0
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
+          cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@v3
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
-          path: ${{ env.PUB_CACHE }}
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pub-
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-cache-
           
       - name: 获取依赖
         run: flutter pub get
@@ -66,7 +86,16 @@ jobs:
           if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
             echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
             sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            echo "✅ 已修复Flutter本地通知插件"
+          else
+            echo "⚠️ 未找到FlutterLocalNotificationsPlugin.java文件，跳过修复"
           fi
+        
+      - name: 检查资源目录
+        run: |
+          # 确保assets目录存在
+          mkdir -p assets/images
+          echo "已确保assets/images目录存在"
         
       - name: 运行测试
         run: flutter test --coverage
@@ -77,37 +106,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         with:
           fetch-depth: 0  # 获取完整历史用于版本号生成
 
       - name: 设置Java环境
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
         with:
           distribution: 'zulu'
           java-version: '17'
           
       - name: 设置Flutter环境
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1c5eb12d812966ca84680edc38353a0851c8fd56 # v2.14.0
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
+          cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@v3
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
-          path: ${{ env.PUB_CACHE }}
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pub-
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-cache-
           
       - name: 缓存Gradle
-        uses: actions/cache@v3
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          restore-keys: |
+            ${{ runner.os }}-gradle-
           
       - name: 获取依赖
         run: flutter pub get
@@ -118,7 +150,16 @@ jobs:
           if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
             echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
             sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            echo "✅ 已修复Flutter本地通知插件"
+          else
+            echo "⚠️ 未找到FlutterLocalNotificationsPlugin.java文件，跳过修复"
           fi
+        
+      - name: 检查资源目录
+        run: |
+          # 确保assets目录存在
+          mkdir -p assets/images
+          echo "已确保assets/images目录存在"
         
       - name: 获取版本号
         id: version
@@ -130,14 +171,15 @@ jobs:
         run: flutter build apk --release
         
       - name: 上传APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: scheduling-assistant-${{ steps.version.outputs.version }}.apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
       
       - name: 创建Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@ab50eebb6488051c6788d97fa95232267c6a4e23 # v1
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
           name: 排班助手 ${{ steps.version.outputs.version }}
@@ -156,25 +198,33 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
         with:
           fetch-depth: 0  # 获取完整历史用于版本号生成
         
       - name: 设置Flutter环境
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1c5eb12d812966ca84680edc38353a0851c8fd56 # v2.14.0
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
+          cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@v3
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
-          path: ${{ env.PUB_CACHE }}
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-pub-
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-cache-
           
       - name: 获取依赖
         run: flutter pub get
+      
+      - name: 检查资源目录
+        run: |
+          # 确保assets目录存在
+          mkdir -p assets/images
+          echo "已确保assets/images目录存在"
       
       - name: 获取版本号
         id: version
@@ -194,14 +244,15 @@ jobs:
           zip -r app-release-unsigned.ipa Payload
           
       - name: 上传IPA
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: scheduling-assistant-${{ steps.version.outputs.version }}.ipa
           path: build/ios/iphoneos/app-release-unsigned.ipa
+          retention-days: 7
           
       - name: 添加IPA到Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@ab50eebb6488051c6788d97fa95232267c6a4e23 # v1
         with:
           files: build/ios/iphoneos/app-release-unsigned.ipa
           draft: true
