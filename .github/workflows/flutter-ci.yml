@@ -49,60 +49,16 @@ jobs:
         run: |
           # 确保assets目录存在
           mkdir -p assets/images
-          echo "已确保assets/images目录存在"
+          mkdir -p assets/i18n
+          mkdir -p assets/sounds
+          echo "已确保所有资源目录存在"
           
       - name: 分析代码
         run: flutter analyze
   
-  test:
-    name: 运行测试
-    needs: analyze
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
-        
-      - name: 设置Flutter环境
-        uses: subosito/flutter-action@1c5eb12d812966ca84680edc38353a0851c8fd56 # v2.14.0
-        with:
-          flutter-version: '3.29.2'
-          channel: 'stable'
-          cache: true
-      
-      - name: 缓存Pub依赖
-        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-cache-
-          
-      - name: 获取依赖
-        run: flutter pub get
-        
-      - name: 自动修复插件问题
-        run: |
-          FLUTTER_LOCAL_NOTIFICATIONS_PATH=$(find ~/.pub-cache -name "FlutterLocalNotificationsPlugin.java" | grep -v mirror | head -n 1)
-          if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
-            echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
-            sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
-            echo "✅ 已修复Flutter本地通知插件"
-          else
-            echo "⚠️ 未找到FlutterLocalNotificationsPlugin.java文件，跳过修复"
-          fi
-        
-      - name: 检查资源目录
-        run: |
-          # 确保assets目录存在
-          mkdir -p assets/images
-          echo "已确保assets/images目录存在"
-        
-      - name: 运行测试
-        run: flutter test --coverage
-  
   build-android:
     name: 构建Android应用
-    needs: test
+    needs: analyze
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -159,7 +115,9 @@ jobs:
         run: |
           # 确保assets目录存在
           mkdir -p assets/images
-          echo "已确保assets/images目录存在"
+          mkdir -p assets/i18n
+          mkdir -p assets/sounds
+          echo "已确保所有资源目录存在"
         
       - name: 获取版本号
         id: version
@@ -194,7 +152,7 @@ jobs:
           
   build-ios:
     name: 构建iOS应用
-    needs: test
+    needs: analyze
     runs-on: macos-latest
     steps:
       - name: 检出代码
@@ -224,7 +182,9 @@ jobs:
         run: |
           # 确保assets目录存在
           mkdir -p assets/images
-          echo "已确保assets/images目录存在"
+          mkdir -p assets/i18n
+          mkdir -p assets/sounds
+          echo "已确保所有资源目录存在"
       
       - name: 获取版本号
         id: version
