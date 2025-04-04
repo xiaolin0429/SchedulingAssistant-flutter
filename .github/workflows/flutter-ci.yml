@@ -126,7 +126,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         
       - name: 构建APK
-        run: flutter build apk --release
+        run: |
+          # 设置正确的JAVA_HOME环境变量，覆盖本地配置
+          export JAVA_HOME=$JAVA_HOME_17_X64
+          flutter build apk --release
         
       - name: 上传APK
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
@@ -194,6 +197,8 @@ jobs:
         
       - name: 构建iOS
         run: |
+          # 确保使用正确的Java路径
+          export JAVA_HOME=$JAVA_HOME_17_X64
           flutter build ios --release --no-codesign
           
       - name: 创建IPA文件 (不包含签名)
