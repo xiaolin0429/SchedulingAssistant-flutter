@@ -151,6 +151,8 @@ flutter run
 
 本项目使用GitHub Actions自动化构建和发布Flutter应用。
 
+> 📄 [查看完整CI/CD文档](.github/docs/CICD.md)
+
 ### 可用工作流
 
 #### 1. Flutter CI/CD (`flutter-ci.yml`)
