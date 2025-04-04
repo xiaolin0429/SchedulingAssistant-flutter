@@ -1,0 +1,73 @@
+name: 应用发布
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送版本标签时触发，例如v1.0.0
+
+jobs:
+  validate:
+    name: 验证版本
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        
+      - name: 检查版本号匹配
+        id: check
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          PUBSPEC_VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          echo "TAG_VERSION=$TAG_VERSION"
+          echo "PUBSPEC_VERSION=$PUBSPEC_VERSION"
+          
+          if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "错误: 标签版本 $TAG_VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
+            exit 1
+          fi
+          
+          echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ 版本号检查通过: $TAG_VERSION"
+          
+  create-release:
+    name: 创建GitHub发布
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: 获取变更日志
+        id: changelog
+        run: |
+          # 尝试从CHANGELOG.md获取变更日志内容，若无则使用提交记录
+          CHANGELOG=""
+          VERSION=${{ needs.validate.outputs.version }}
+          
+          if [ -f "CHANGELOG.md" ]; then
+            # 尝试提取当前版本的变更日志
+            CHANGELOG=$(awk -v ver="## [$VERSION]" '/^## \[/{flag=0} $0~ver{flag=1; next} flag{print}' CHANGELOG.md | sed '/^## \[/,$d')
+          fi
+          
+          # 如果没有找到变更日志，则使用提交历史
+          if [ -z "$CHANGELOG" ]; then
+            echo "未找到版本变更日志，使用提交历史..."
+            CHANGELOG=$(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD)
+          fi
+          
+          # 将变更日志内容保存到文件，以便下一步使用
+          echo "$CHANGELOG" > changelog.txt
+          
+      - name: 创建Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: 排班助手 v${{ needs.validate.outputs.version }}
+          body_path: changelog.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

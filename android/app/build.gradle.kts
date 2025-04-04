@@ -5,6 +5,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+// 添加签名配置处理逻辑
+val keystorePropertiesFile = rootProject.file("key.properties")
+
 android {
     namespace = "com.schedule.assistant"
     compileSdk = 35
@@ -19,6 +25,21 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    // 添加签名配置
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                val properties = Properties()
+                properties.load(FileInputStream(keystorePropertiesFile))
+                
+                keyAlias = properties.getProperty("keyAlias")
+                keyPassword = properties.getProperty("keyPassword")
+                storeFile = file(properties.getProperty("storeFile"))
+                storePassword = properties.getProperty("storePassword")
+            }
+        }
     }
 
     defaultConfig {
@@ -38,6 +59,10 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // 使用发布签名配置
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             isMinifyEnabled = false
