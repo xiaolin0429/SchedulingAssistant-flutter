@@ -13,7 +13,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - permission_handler_apple (9.1.1):
+  - permission_handler_apple (9.3.0):
     - Flutter
   - share_plus (0.0.1):
     - Flutter
@@ -74,7 +74,7 @@ SPEC CHECKSUMS:
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   package_info_plus: 566e1b7a2f3900e4b0020914ad3fc051dcc95596
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
-  permission_handler_apple: 3787117e48f80715ff04a3830ca039283d6a4f29
+  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   share_plus: de6030e33b4e106470e09322d87cf2a4258d2d1d
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
