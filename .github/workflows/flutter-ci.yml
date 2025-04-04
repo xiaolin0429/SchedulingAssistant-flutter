@@ -128,20 +128,16 @@ jobs:
       - name: 获取版本号
         id: version
         run: |
-          VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //')
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/v}
+          PUBSPEC_VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           
-          # 检查是否是标签触发的构建
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            # 验证标签版本是否与pubspec.yaml中的版本匹配
-            PUBSPEC_VERSION=$(echo "$VERSION" | sed 's/+.*//')
-            if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
-              echo "::warning::标签版本 $TAG_VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
-            fi
+          # 检查标签版本是否与pubspec.yaml中的版本匹配
+          if [ "$VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "::warning::标签版本 $VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
           fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          echo "pubspec_version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
         
       - name: 构建APK
         run: |
@@ -152,7 +148,7 @@ jobs:
       - name: 上传APK
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
-          name: scheduling-assistant-${{ steps.version.outputs.version }}.apk
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}.apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
       
@@ -196,7 +192,9 @@ jobs:
         id: version
         run: |
           VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //')
+          PUBSPEC_VERSION=$(echo "$VERSION" | sed 's/+.*//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "pubspec_version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
         
       - name: 构建iOS
         run: |
@@ -214,7 +212,7 @@ jobs:
       - name: 上传IPA
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
-          name: scheduling-assistant-${{ steps.version.outputs.version }}.ipa
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}.ipa
           path: build/ios/iphoneos/app-release-unsigned.ipa
           retention-days: 7
           
@@ -234,23 +232,38 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           PUBSPEC_VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          
+          # 检查标签版本是否与pubspec.yaml中的版本匹配
+          if [ "$VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "::warning::标签版本 $VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "pubspec_version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
       
       - name: 下载Android APK
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.2
         with:
-          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}+*.apk
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}.apk
           path: ./artifacts
       
       - name: 下载iOS IPA
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.2
         with:
-          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}+*.ipa
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}.ipa
           path: ./artifacts
       
       - name: 列出下载的文件
-        run: ls -la ./artifacts
+        run: |
+          ls -la ./artifacts
+          # 重命名文件以便于识别
+          if [ -f "./artifacts/app-release.apk" ]; then
+            mv ./artifacts/app-release.apk ./artifacts/排班助手_v${{ steps.version.outputs.version }}.apk
+          fi
+          if [ -f "./artifacts/app-release-unsigned.ipa" ]; then
+            mv ./artifacts/app-release-unsigned.ipa ./artifacts/排班助手_v${{ steps.version.outputs.version }}.ipa
+          fi
+          ls -la ./artifacts
       
       - name: 生成变更日志
         id: changelog
@@ -290,8 +303,8 @@ jobs:
           name: 排班助手 v${{ steps.version.outputs.version }}
           body_path: changelog.txt
           files: |
-            ./artifacts/app-release.apk
-            ./artifacts/app-release-unsigned.ipa
+            ./artifacts/排班助手_v${{ steps.version.outputs.version }}.apk
+            ./artifacts/排班助手_v${{ steps.version.outputs.version }}.ipa
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
