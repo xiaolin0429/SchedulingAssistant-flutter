@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 
 abstract class BaseDao<T> {
   final Database database;
@@ -7,7 +8,7 @@ abstract class BaseDao<T> {
   BaseDao(this.database, this.tableName);
 
   Future<int> insert(Map<String, dynamic> row) async {
-    print('BaseDao开始数据库插入操作: 表=$tableName, 数据=${row.toString()}');
+    debugPrint('BaseDao开始数据库插入操作: 表=$tableName, 数据=${row.toString()}');
     try {
       return await database.insert(
         tableName,
@@ -15,7 +16,7 @@ abstract class BaseDao<T> {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
-      print('BaseDao数据库插入失败: $e');
+      debugPrint('BaseDao数据库插入失败: $e');
       throw Exception('数据库插入操作失败: $e');
     }
   }

@@ -136,9 +136,9 @@ class _Badge extends StatelessWidget {
           color: borderColor,
           width: 2,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Color.fromARGB(128, 0, 0, 0),
             blurRadius: 10,
             spreadRadius: 2,
           )

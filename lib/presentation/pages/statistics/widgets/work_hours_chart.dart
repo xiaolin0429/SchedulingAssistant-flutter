@@ -74,7 +74,8 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                             barTouchData: BarTouchData(
                               enabled: true,
                               touchTooltipData: BarTouchTooltipData(
-                                tooltipBgColor: Colors.black.withOpacity(0.9),
+                                tooltipBgColor:
+                                    const Color.fromARGB(230, 0, 0, 0),
                                 tooltipPadding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 tooltipMargin: 8,

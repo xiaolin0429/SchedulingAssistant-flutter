@@ -63,7 +63,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 // 添加半透明加载指示器覆盖
                 Positioned.fill(
                   child: Container(
-                    color: Colors.white.withOpacity(0.5),
+                    color:
+                        const Color.fromARGB(128, 255, 255, 255), // 0.5透明度的白色
                     child: const Center(
                       child: CircularProgressIndicator(),
                     ),

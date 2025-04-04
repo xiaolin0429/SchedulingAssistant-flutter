@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../database/daos/alarm_dao.dart';
 import '../models/alarm.dart';
 import 'base_repository.dart';
@@ -27,13 +28,13 @@ class AlarmRepository implements BaseRepository<AlarmEntity> {
   @override
   Future<int> insert(AlarmEntity alarm) async {
     try {
-      print('AlarmRepository准备插入闹钟数据: ${alarm.toMap()}');
+      debugPrint('AlarmRepository准备插入闹钟数据: ${alarm.toMap()}');
       final id = await _alarmDao.insertAlarm(alarm);
-      print('AlarmRepository闹钟插入成功，ID: $id');
+      debugPrint('AlarmRepository闹钟插入成功，ID: $id');
       getAll(); // 更新流
       return id;
     } catch (e) {
-      print('AlarmRepository插入闹钟失败: $e');
+      debugPrint('AlarmRepository插入闹钟失败: $e');
       throw Exception('插入闹钟数据失败: $e');
     }
   }

@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import '../../core/config/environment.dart';
+import 'package:flutter/foundation.dart';
 
 class BackupService {
   Future<Map<String, dynamic>> getBackupInfo() async {
@@ -301,7 +302,7 @@ class BackupService {
 
       return backupInfoList;
     } catch (e) {
-      print('获取备份列表失败: $e');
+      debugPrint('获取备份列表失败: $e');
       return [];
     }
   }

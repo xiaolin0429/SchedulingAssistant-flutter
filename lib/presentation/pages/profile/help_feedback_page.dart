@@ -18,7 +18,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
   final _contactController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
-  
+
   // 将 faqs 列表移到类成员变量
   late List<Map<String, dynamic>> _faqs;
 
@@ -28,7 +28,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
     // 在 initState 中初始化 faqs 列表为空
     _faqs = [];
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -81,9 +81,10 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
     // 添加日志，打印 _faqs 的状态
     debugPrint('构建 HelpFeedbackPage，FAQ 数量: ${_faqs.length}');
     for (int i = 0; i < _faqs.length; i++) {
-      debugPrint('FAQ[$i] 展开状态: ${_faqs[i]['isExpanded']}，问题: ${_faqs[i]['question']}');
+      debugPrint(
+          'FAQ[$i] 展开状态: ${_faqs[i]['isExpanded']}，问题: ${_faqs[i]['question']}');
     }
-    
+
     // 移除 faqs 列表的定义
     return Scaffold(
       appBar: AppBar(
@@ -94,15 +95,15 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
           // 常见问题
           _buildSectionHeader(context, 'faq_section'.tr(context)),
           _buildFAQList(), // 移除参数
-          
+
           // 用户反馈
           _buildSectionHeader(context, 'user_feedback_section'.tr(context)),
           _buildFeedbackForm(),
-          
+
           // 联系我们
           _buildSectionHeader(context, 'contact_section'.tr(context)),
           _buildContactOptions(),
-          
+
           // 日志导出
           _buildSectionHeader(context, 'log_export_section'.tr(context)),
           _buildLogExport(),
@@ -133,7 +134,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
           final index = entry.key;
           final faq = entry.value;
           debugPrint('构建 FAQ[$index]，问题: ${faq['question']}');
-          
+
           return ExpansionTile(
             title: Text(
               faq['question']!,
@@ -247,7 +248,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
         leading: const Icon(Icons.file_download),
         title: Text('export_logs'.tr(context)),
         subtitle: Text('export_logs_desc'.tr(context)),
-        onTap: _exportLogs,
+        onTap: _shareLogFile,
       ),
     );
   }
@@ -261,7 +262,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
       try {
         // TODO: 实现反馈提交逻辑，可以是发送到服务器或保存到本地
         await Future.delayed(const Duration(seconds: 2)); // 模拟网络请求
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('feedback_success'.tr(context))),
@@ -272,7 +273,10 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('feedback_fail'.tr(context).replaceAll('{message}', e.toString()))),
+            SnackBar(
+                content: Text('feedback_fail'
+                    .tr(context)
+                    .replaceAll('{message}', e.toString()))),
           );
         }
       } finally {
@@ -293,7 +297,7 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
         'subject': '${'app_title'.tr(context)} - ${'feedback'.tr(context)}',
       },
     );
-    
+
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
     } else {
@@ -318,15 +322,21 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
     }
   }
 
-  Future<void> _exportLogs() async {
+  Future<void> _shareLogFile() async {
     try {
-      // 模拟生成日志文件
-      final tempDir = await getTemporaryDirectory();
-      final logFile = File('${tempDir.path}/app_logs.txt');
-      
-      // 写入一些示例日志内容
+      // 在异步操作前保存所有需要的上下文值
+      final appTitle = 'app_title'.tr(context);
+      final exportLogsTitle = 'export_logs'.tr(context);
+
+      // 获取应用文档目录
+      final documentsDirectory = await getApplicationDocumentsDirectory();
+
+      // 创建临时日志文件
+      final logFile = File('${documentsDirectory.path}/app_logs.txt');
+
+      // 生成日志内容
       await logFile.writeAsString('''
-应用日志 - ${DateTime.now()}
+日志导出时间: ${DateTime.now()}
 系统信息: ${await _getSystemInfo()}
 应用版本: 1.0.0
 ----------------------------
@@ -335,16 +345,20 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
 [INFO] 加载班次数据
 [INFO] 初始化完成
 ''');
-      
+
       // 分享日志文件
       await Share.shareXFiles(
         [XFile(logFile.path)],
-        subject: '${'app_title'.tr(context)} - ${'export_logs'.tr(context)}',
+        subject: '$appTitle - $exportLogsTitle',
       );
     } catch (e) {
       if (mounted) {
+        // 在mounted检查后重新获取上下文值
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('export_logs_fail'.tr(context).replaceAll('{message}', e.toString()))),
+          SnackBar(
+              content: Text('export_logs_fail'
+                  .tr(context)
+                  .replaceAll('{message}', e.toString()))),
         );
       }
     }
@@ -379,4 +393,4 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
       return 'Unknown';
     }
   }
-} 
+}

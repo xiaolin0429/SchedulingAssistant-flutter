@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/alarm.dart';
 import 'base_dao.dart';
 
@@ -128,12 +130,12 @@ class AlarmEntityDao extends BaseDao<AlarmEntity> {
 
   Future<int> insertAlarm(AlarmEntity alarm) async {
     try {
-      print('AlarmEntityDao准备插入闹钟: ${alarm.toMap()}');
+      debugPrint('AlarmEntityDao准备插入闹钟: ${alarm.toMap()}');
       final id = await insert(alarm.toMap());
-      print('AlarmEntityDao插入成功，ID: $id');
+      debugPrint('AlarmEntityDao插入成功，ID: $id');
       return id;
     } catch (e) {
-      print('AlarmEntityDao插入闹钟失败: $e');
+      debugPrint('AlarmEntityDao插入闹钟失败: $e');
       throw Exception('数据库插入闹钟失败: $e');
     }
   }
