@@ -129,7 +129,19 @@ jobs:
         id: version
         run: |
           VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //')
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # 检查是否是标签触发的构建
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            # 验证标签版本是否与pubspec.yaml中的版本匹配
+            PUBSPEC_VERSION=$(echo "$VERSION" | sed 's/+.*//')
+            if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+              echo "::warning::标签版本 $TAG_VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
+            fi
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
         
       - name: 构建APK
         run: |
@@ -144,21 +156,6 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
       
-      - name: 创建Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@ab50eebb6488051c6788d97fa95232267c6a4e23 # v1
-        with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          name: 排班助手 ${{ steps.version.outputs.version }}
-          body: |
-            排班助手 v${{ steps.version.outputs.version }} 版本发布
-            
-            ### 更新内容
-            - 请查看提交记录了解详细变更
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
   build-ios:
     name: 构建iOS应用
     needs: analyze
@@ -221,11 +218,80 @@ jobs:
           path: build/ios/iphoneos/app-release-unsigned.ipa
           retention-days: 7
           
-      - name: 添加IPA到Release
-        if: startsWith(github.ref, 'refs/tags/')
+  create-release:
+    name: 创建发布包
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@5126516654c75f76bca1de45dd82a3006d8890f9 # v4.1.1
+        with:
+          fetch-depth: 0  # 获取完整历史用于版本号生成
+      
+      - name: 获取版本号
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          PUBSPEC_VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "pubspec_version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: 下载Android APK
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.2
+        with:
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}+*.apk
+          path: ./artifacts
+      
+      - name: 下载iOS IPA
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.2
+        with:
+          name: scheduling-assistant-${{ steps.version.outputs.pubspec_version }}+*.ipa
+          path: ./artifacts
+      
+      - name: 列出下载的文件
+        run: ls -la ./artifacts
+      
+      - name: 生成变更日志
+        id: changelog
+        run: |
+          # 尝试从CHANGELOG.md获取变更日志内容，若无则使用提交记录
+          CHANGELOG=""
+          VERSION=${{ steps.version.outputs.version }}
+          
+          if [ -f "CHANGELOG.md" ]; then
+            # 尝试提取当前版本的变更日志
+            CHANGELOG=$(awk -v ver="## [$VERSION]" '/^## \[/{flag=0} $0~ver{flag=1; next} flag{print}' CHANGELOG.md | sed '/^## \[/,$d')
+          fi
+          
+          # 如果没有找到变更日志，则使用提交历史
+          if [ -z "$CHANGELOG" ]; then
+            echo "未找到版本变更日志，使用提交历史..."
+            # 尝试找到上一个标签，如果没有则从头开始
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -z "$PREV_TAG" ]; then
+              echo "没有找到上一个标签，使用全部提交历史..."
+              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -n 50)
+            else
+              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
+            fi
+          fi
+          
+          # 添加自动生成的更新时间和版本信息
+          FINAL_CHANGELOG="## 排班助手 v$VERSION 发布说明\n\n**发布日期:** $(date +"%Y-%m-%d")\n\n### 更新内容\n\n$CHANGELOG\n\n### 安装说明\n- 点击下方APK下载安装\n- 如遇到安装问题，请卸载旧版本后重新安装"
+          
+          # 将变更日志内容保存到文件，以便下一步使用
+          echo -e "$FINAL_CHANGELOG" > changelog.txt
+          cat changelog.txt
+      
+      - name: 创建Release
         uses: softprops/action-gh-release@ab50eebb6488051c6788d97fa95232267c6a4e23 # v1
         with:
-          files: build/ios/iphoneos/app-release-unsigned.ipa
+          name: 排班助手 v${{ steps.version.outputs.version }}
+          body_path: changelog.txt
+          files: |
+            ./artifacts/app-release.apk
+            ./artifacts/app-release-unsigned.ipa
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
