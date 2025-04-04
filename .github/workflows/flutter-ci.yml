@@ -19,11 +19,19 @@ jobs:
       - name: 设置Flutter环境
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
+          flutter-version: '3.29.2'
           channel: 'stable'
           
       - name: 获取依赖
         run: flutter pub get
+        
+      - name: 自动修复插件问题
+        run: |
+          FLUTTER_LOCAL_NOTIFICATIONS_PATH=$(find ~/.pub-cache -name "FlutterLocalNotificationsPlugin.java" | grep -v mirror | head -n 1)
+          if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
+            echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+          fi
         
       - name: 分析代码
         run: flutter analyze
@@ -39,7 +47,7 @@ jobs:
       - name: 设置Flutter环境
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
+          flutter-version: '3.29.2'
           channel: 'stable'
       
       - name: 缓存Pub依赖
@@ -51,6 +59,14 @@ jobs:
           
       - name: 获取依赖
         run: flutter pub get
+        
+      - name: 自动修复插件问题
+        run: |
+          FLUTTER_LOCAL_NOTIFICATIONS_PATH=$(find ~/.pub-cache -name "FlutterLocalNotificationsPlugin.java" | grep -v mirror | head -n 1)
+          if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
+            echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+          fi
         
       - name: 运行测试
         run: flutter test --coverage
@@ -69,12 +85,12 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '17'
           
       - name: 设置Flutter环境
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
+          flutter-version: '3.29.2'
           channel: 'stable'
       
       - name: 缓存Pub依赖
@@ -96,6 +112,14 @@ jobs:
       - name: 获取依赖
         run: flutter pub get
       
+      - name: 自动修复插件问题
+        run: |
+          FLUTTER_LOCAL_NOTIFICATIONS_PATH=$(find ~/.pub-cache -name "FlutterLocalNotificationsPlugin.java" | grep -v mirror | head -n 1)
+          if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
+            echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+          fi
+        
       - name: 获取版本号
         id: version
         run: |
@@ -139,7 +163,7 @@ jobs:
       - name: 设置Flutter环境
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
+          flutter-version: '3.29.2'
           channel: 'stable'
       
       - name: 缓存Pub依赖

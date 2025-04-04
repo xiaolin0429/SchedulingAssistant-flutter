@@ -22,7 +22,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.0'
+          flutter-version: '3.29.2'
           channel: 'stable'
           cache: true
           
@@ -33,6 +33,16 @@ jobs:
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-pub-cache-
+            
+      - name: Setup Gradle Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
           
       - name: Install Flutter Dependencies
         run: flutter pub get
@@ -43,6 +53,9 @@ jobs:
           if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
             echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
             sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            echo "✅ 成功修复Flutter本地通知插件"
+          else
+            echo "⚠️ 未找到FlutterLocalNotificationsPlugin.java文件，跳过修复"
           fi
         
       - name: Setup Android Keystore
@@ -53,6 +66,12 @@ jobs:
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=app/keys/release.jks" >> android/key.properties
+          
+          # 验证密钥库是否正确生成
+          if [ ! -f "android/app/keys/release.jks" ]; then
+            echo "::error::密钥库创建失败"
+            exit 1
+          fi
         
       - name: Build Android Release
         run: flutter build apk --release

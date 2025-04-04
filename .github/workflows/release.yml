@@ -23,8 +23,10 @@ jobs:
           echo "TAG_VERSION=$TAG_VERSION"
           echo "PUBSPEC_VERSION=$PUBSPEC_VERSION"
           
+          # 使用更安全的版本比较方法
           if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
-            echo "错误: 标签版本 $TAG_VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
+            echo "::error::标签版本 $TAG_VERSION 与pubspec.yaml中的版本 $PUBSPEC_VERSION 不匹配!"
+            echo "请确保发布标签版本与pubspec.yaml中的版本一致"
             exit 1
           fi
           
@@ -56,11 +58,19 @@ jobs:
           # 如果没有找到变更日志，则使用提交历史
           if [ -z "$CHANGELOG" ]; then
             echo "未找到版本变更日志，使用提交历史..."
-            CHANGELOG=$(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD)
+            # 尝试找到上一个标签，如果没有则从头开始
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -z "$PREV_TAG" ]; then
+              echo "没有找到上一个标签，使用全部提交历史..."
+              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+            else
+              CHANGELOG=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
+            fi
           fi
           
           # 将变更日志内容保存到文件，以便下一步使用
           echo "$CHANGELOG" > changelog.txt
+          cat changelog.txt
           
       - name: 创建Release
         uses: softprops/action-gh-release@v1
