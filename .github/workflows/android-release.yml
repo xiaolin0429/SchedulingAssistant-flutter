@@ -24,9 +24,26 @@ jobs:
         with:
           flutter-version: '3.16.0'
           channel: 'stable'
+          cache: true
+          
+      - name: Setup Flutter Pub Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-cache-
           
       - name: Install Flutter Dependencies
         run: flutter pub get
+        
+      - name: Patch Flutter Local Notifications
+        run: |
+          FLUTTER_LOCAL_NOTIFICATIONS_PATH=$(find ~/.pub-cache -name "FlutterLocalNotificationsPlugin.java" | grep -v mirror | head -n 1)
+          if [ -n "$FLUTTER_LOCAL_NOTIFICATIONS_PATH" ]; then
+            echo "Patching $FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+            sed -i 's/bigLargeIcon(null)/bigLargeIcon((android.graphics.Bitmap)null)/g' "$FLUTTER_LOCAL_NOTIFICATIONS_PATH"
+          fi
         
       - name: Setup Android Keystore
         run: |
