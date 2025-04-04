@@ -360,7 +360,7 @@ class _AlarmBottomSheetState extends State<AlarmBottomSheet> {
       builder: (context) => AlertDialog(
         title:
             Text(AppLocalizations.of(context).translate('permission_required')),
-        content: Text('为了确保系统闹钟功能正常工作，需要获取精确闹钟权限。请在接下来的系统设置中授予权限。'),
+        content: const Text('为了确保系统闹钟功能正常工作，需要获取精确闹钟权限。请在接下来的系统设置中授予权限。'),
         actions: [
           TextButton(
             onPressed: () {
