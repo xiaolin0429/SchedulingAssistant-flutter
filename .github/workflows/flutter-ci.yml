@@ -24,7 +24,7 @@ jobs:
           cache: true
           
       - name: 缓存Pub依赖
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
@@ -70,7 +70,7 @@ jobs:
           cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
@@ -124,7 +124,7 @@ jobs:
           cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
@@ -132,7 +132,7 @@ jobs:
             ${{ runner.os }}-pub-cache-
           
       - name: 缓存Gradle
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: |
             ~/.gradle/caches
@@ -210,7 +210,7 @@ jobs:
           cache: true
       
       - name: 缓存Pub依赖
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
