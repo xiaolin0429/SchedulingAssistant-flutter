@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'  # 当推送版本标签时触发，例如v1.0.0
 
+# 添加工作流权限
+permissions:
+  contents: write  # 允许创建Release和上传资源
+  issues: write    # 允许创建和更新Issues
+  pull-requests: write # 允许创建和更新PR
+
 jobs:
   validate:
     name: 验证版本
@@ -76,7 +82,7 @@ jobs:
           cat changelog.txt
           
       - name: 创建Release
-        uses: softprops/action-gh-release@9eb00f4b01f0f646ecf10c629c2b0a7c35aa9484 # v0.1.15
+        uses: softprops/action-gh-release@ab50eebb6488051c6788d97fa95232267c6a4e23 # v1
         with:
           name: 排班助手 v${{ needs.validate.outputs.version }}
           body_path: changelog.txt

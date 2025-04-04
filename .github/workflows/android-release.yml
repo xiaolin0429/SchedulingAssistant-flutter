@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
 
+# 添加工作流权限
+permissions:
+  contents: write  # 允许创建Release和上传资源
+  issues: write    # 允许创建和更新Issues
+  pull-requests: write # 允许创建和更新PR
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,7 +33,7 @@ jobs:
           cache: true
           
       - name: Setup Flutter Pub Cache
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-cache-${{ hashFiles('**/pubspec.lock') }}
@@ -35,7 +41,7 @@ jobs:
             ${{ runner.os }}-pub-cache-
             
       - name: Setup Gradle Cache
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@0769f2e44373d687c841be56f618397100943c5e # v3
         with:
           path: |
             ~/.gradle/caches
