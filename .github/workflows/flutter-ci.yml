@@ -8,6 +8,12 @@ on:
     branches: [ main, master ]
   workflow_dispatch:  # 允许手动触发工作流
 
+# 添加工作流权限
+permissions:
+  contents: write  # 允许创建Release和上传资源
+  issues: write    # 允许创建和更新Issues
+  pull-requests: write # 允许创建和更新PR
+
 jobs:
   analyze:
     name: 代码分析
