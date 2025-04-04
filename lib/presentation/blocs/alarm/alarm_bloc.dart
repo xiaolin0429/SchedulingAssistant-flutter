@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/services/alarm_service.dart';
+import '../../../data/models/alarm.dart';
 import 'alarm_event.dart';
 import 'alarm_state.dart';
 import 'package:flutter/foundation.dart';
@@ -22,19 +23,25 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
 
     // 监听闹钟流
     _alarmsSubscription = _alarmService.alarmsStream.listen((alarms) async {
-      // 直接更新状态，而不是触发新的LoadAlarms事件
+      // 使用add方法触发一个内部事件来更新状态，而不是直接使用emit
       try {
         final nextAlarm = await _alarmService.getNextAlarm();
-        emit(AlarmLoaded(alarms: alarms, nextAlarm: nextAlarm));
+        add(_InternalUpdateState(alarms.cast<AlarmEntity>(), nextAlarm));
       } catch (e) {
-        // 如果获取nextAlarm失败，只更新alarms
+        // 使用事件更新状态
         if (state is AlarmLoaded) {
           final currentState = state as AlarmLoaded;
-          emit(AlarmLoaded(alarms: alarms, nextAlarm: currentState.nextAlarm));
+          add(_InternalUpdateState(
+              alarms.cast<AlarmEntity>(), currentState.nextAlarm));
         } else {
-          emit(AlarmLoaded(alarms: alarms, nextAlarm: null));
+          add(_InternalUpdateState(alarms.cast<AlarmEntity>(), null));
         }
       }
+    });
+
+    // 添加内部状态更新处理器
+    on<_InternalUpdateState>((event, emit) {
+      emit(AlarmLoaded(alarms: event.alarms, nextAlarm: event.nextAlarm));
     });
 
     // 初始加载
@@ -168,7 +175,7 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
       }
     } catch (e) {
       // 只记录错误但不改变状态，避免UI闪烁
-      print('重新安排闹钟失败: $e');
+      debugPrint('重新安排闹钟失败: $e');
     }
   }
 
@@ -177,4 +184,15 @@ class AlarmBloc extends Bloc<AlarmEvent, AlarmState> {
     _alarmsSubscription?.cancel();
     return super.close();
   }
+}
+
+// 内部状态更新事件
+class _InternalUpdateState extends AlarmEvent {
+  final List<AlarmEntity> alarms;
+  final AlarmEntity? nextAlarm;
+
+  const _InternalUpdateState(this.alarms, this.nextAlarm);
+
+  @override
+  List<Object?> get props => [alarms, nextAlarm];
 }

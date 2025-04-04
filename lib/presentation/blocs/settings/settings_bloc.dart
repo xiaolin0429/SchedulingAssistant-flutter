@@ -5,7 +5,6 @@ import '../../../core/notifications/notification_service.dart';
 import 'settings_event.dart';
 import 'settings_state.dart';
 import 'package:flutter/foundation.dart';
-import '../alarm/alarm_event.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final SettingsRepository _settingsRepository;
@@ -28,6 +27,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   Future<void> _onLoadSettings(
       LoadSettings event, Emitter<SettingsState> emit) async {
     try {
+      await _notificationService.initialize();
+
       emit(SettingsLoaded(
         themeMode: _settingsRepository.getThemeMode(),
         language: _settingsRepository.getLanguage(),

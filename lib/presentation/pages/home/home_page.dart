@@ -65,9 +65,9 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: Theme.of(context).scaffoldBackgroundColor,
-                    border: Border(
+                    border: const Border(
                       bottom: BorderSide(
-                        color: Colors.grey.withOpacity(0.2),
+                        color: Color.fromARGB(51, 158, 158, 158), // 0.2透明度的灰色
                         width: 1,
                       ),
                     ),
