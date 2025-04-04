@@ -685,6 +685,8 @@ class NotificationService {
             AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
         matchDateTimeComponents: DateTimeComponents.time,
         payload: payload ?? 'alarm_$id',
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint(
           'iOS每日重复闹钟已设置：$title，时间：${scheduledTime.hour}:${scheduledTime.minute}');
@@ -702,6 +704,8 @@ class NotificationService {
               AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           payload: payload ?? 'alarm_${id}_$weekday',
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
         );
       }
       debugPrint('iOS每周重复闹钟已设置：$title，指定星期：$weekdays');
@@ -716,6 +720,8 @@ class NotificationService {
         androidScheduleMode:
             AndroidScheduleMode.exactAllowWhileIdle, // 虽然是iOS但插件需要此参数
         payload: payload ?? 'alarm_$id',
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint('iOS单次闹钟已设置：$title，调整后时间：$correctScheduledDate');
 
@@ -847,6 +853,8 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
         payload: payload,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint(
           '每日重复闹钟已设置：$title，时间：${scheduledTime.hour}:${scheduledTime.minute}');
@@ -862,6 +870,8 @@ class NotificationService {
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           payload: payload,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
         );
       }
       debugPrint('每周重复闹钟已设置：$title，指定星期：$weekdays');
@@ -875,6 +885,8 @@ class NotificationService {
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
       debugPrint('单次闹钟已设置：$title，调整后时间：$correctScheduledDate');
 

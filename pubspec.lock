@@ -93,10 +93,10 @@ packages:
     dependency: "direct main"
     description:
       name: device_info_plus
-      sha256: "306b78788d1bb569edb7c55d622953c2414ca12445b41c9117963e03afc5c513"
+      sha256: "77f757b789ff68e4eaf9c56d1752309bd9f7ad557cb105b938a7f8eb89e59110"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "11.3.3"
+    version: "9.1.2"
   device_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -226,34 +226,26 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_local_notifications
-      sha256: d59eeafd6df92174b1d5f68fc9d66634c97ce2e7cfe2293476236547bb19bbbd
+      sha256: "401643a6ea9d8451365f2ec11145335bf130560cfde367bdf8f0be6d60f89479"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "19.0.0"
+    version: "15.1.3"
   flutter_local_notifications_linux:
     dependency: transitive
     description:
       name: flutter_local_notifications_linux
-      sha256: e3c277b2daab8e36ac5a6820536668d07e83851aeeb79c446e525a70710770a5
+      sha256: c49bd06165cad9beeb79090b18cd1eb0296f4bf4b23b84426e37dd7c027fc3af
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "6.0.0"
+    version: "4.0.1"
   flutter_local_notifications_platform_interface:
     dependency: transitive
     description:
       name: flutter_local_notifications_platform_interface
-      sha256: "2569b973fc9d1f63a37410a9f7c1c552081226c597190cb359ef5d5762d1631c"
+      sha256: "85f8d07fe708c1bdcf45037f2c0109753b26ae077e9d9e899d55971711a4ea66"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "9.0.0"
-  flutter_local_notifications_windows:
-    dependency: transitive
-    description:
-      name: flutter_local_notifications_windows
-      sha256: f8fc0652a601f83419d623c85723a3e82ad81f92b33eaa9bcc21ea1b94773e6e
-      url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-    source: hosted
-    version: "1.0.0"
+    version: "7.2.0"
   flutter_localizations:
     dependency: "direct main"
     description: flutter
@@ -521,50 +513,42 @@ packages:
     dependency: "direct main"
     description:
       name: permission_handler
-      sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
+      sha256: bc56bfe9d3f44c3c612d8d393bd9b174eb796d706759f9b495ac254e4294baa5
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "11.4.0"
+    version: "10.4.5"
   permission_handler_android:
     dependency: transitive
     description:
       name: permission_handler_android
-      sha256: d3971dcdd76182a0c198c096b5db2f0884b0d4196723d21a866fc4cdea057ebc
+      sha256: "59c6322171c29df93a22d150ad95f3aa19ed86542eaec409ab2691b8f35f9a47"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "12.1.0"
+    version: "10.3.6"
   permission_handler_apple:
     dependency: transitive
     description:
       name: permission_handler_apple
-      sha256: f84a188e79a35c687c132a0a0556c254747a08561e99ab933f12f6ca71ef3c98
+      sha256: "99e220bce3f8877c78e4ace901082fb29fa1b4ebde529ad0932d8d664b34f3f5"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "9.4.6"
-  permission_handler_html:
-    dependency: transitive
-    description:
-      name: permission_handler_html
-      sha256: "38f000e83355abb3392140f6bc3030660cfaef189e1f87824facb76300b4ff24"
-      url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
-    source: hosted
-    version: "0.1.3+5"
+    version: "9.1.4"
   permission_handler_platform_interface:
     dependency: transitive
     description:
       name: permission_handler_platform_interface
-      sha256: eb99b295153abce5d683cac8c02e22faab63e50679b937fa1bf67d58bb282878
+      sha256: "6760eb5ef34589224771010805bea6054ad28453906936f843a8cc4d3a55c4a4"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "4.3.0"
+    version: "3.12.0"
   permission_handler_windows:
     dependency: transitive
     description:
       name: permission_handler_windows
-      sha256: "1a790728016f79a41216d88672dbc5df30e686e811ad4e698bfc51f76ad91f1e"
+      sha256: cc074aace208760f1eee6aa4fae766b45d947df85bc831cde77009cdb4720098
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "0.2.1"
+    version: "0.1.3"
   petitparser:
     dependency: transitive
     description:
@@ -798,10 +782,10 @@ packages:
     dependency: "direct main"
     description:
       name: timezone
-      sha256: ffc9d5f4d1193534ef051f9254063fa53d588609418c84299956c3db9383587d
+      sha256: "2236ec079a174ce07434e89fcd3fcda430025eb7692244139a9cf54fdcf1fc7d"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "0.10.0"
+    version: "0.9.4"
   typed_data:
     dependency: transitive
     description:
@@ -918,10 +902,10 @@ packages:
     dependency: transitive
     description:
       name: win32_registry
-      sha256: "6f1b564492d0147b330dd794fee8f512cec4977957f310f9951b5f9d83618dae"
+      sha256: "21ec76dfc731550fd3e2ce7a33a9ea90b828fdf19a5c3bcf556fa992cfa99852"
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
-    version: "2.1.0"
+    version: "1.1.5"
   xdg_directories:
     dependency: transitive
     description:

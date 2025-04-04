@@ -22,7 +22,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.1'
+          flutter-version: '3.16.0'
           channel: 'stable'
           
       - name: Install Flutter Dependencies
@@ -30,6 +30,7 @@ jobs:
         
       - name: Setup Android Keystore
         run: |
+          mkdir -p android/app/keys
           echo "${{ secrets.KEY_JKS }}" | base64 --decode > android/app/keys/release.jks
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
