@@ -53,6 +53,7 @@
   "language": "语言设置",
   "language_select": "语言",
   "language_desc": "选择应用的显示语言",
+  "system_language": "跟随系统",
   "chinese": "中文",
   "english": "English",
   "language_changed": "语言设置已更改",

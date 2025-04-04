@@ -51,10 +51,11 @@
   
   "language": "Language",
   "language_select": "Language",
-  "language_desc": "Choose the display language",
+  "language_desc": "Select display language",
+  "system_language": "System Default",
   "chinese": "中文",
   "english": "English",
-  "language_changed": "Language setting has been changed, please restart the app to apply changes",
+  "language_changed": "Language setting changed",
 
   "reset": "Reset",
   "reset_title": "Reset to Default",

@@ -209,6 +209,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   void _showDateRangeDialog(BuildContext context) {
+    // 保存外部context，确保能访问到StatisticsBloc
+    final outerContext = context;
+
     // 当前日期
     final now = DateTime.now();
     // 初始开始日期（当月1日）
@@ -222,24 +225,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (builderContext, setState) {
             return AlertDialog(
-              title: Text(
-                  AppLocalizations.of(context).translate('date_range_select')),
+              title: Text(AppLocalizations.of(dialogContext)
+                  .translate('date_range_select')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: Text(
-                        AppLocalizations.of(context).translate('start_date')),
+                    title: Text(AppLocalizations.of(dialogContext)
+                        .translate('start_date')),
                     subtitle: Text(
                         '${startDate.year}-${startDate.month}-${startDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final picked = await showDatePicker(
-                        context: context,
+                        context: dialogContext,
                         initialDate: startDate,
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2030),
@@ -256,14 +259,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     },
                   ),
                   ListTile(
-                    title: Text(
-                        AppLocalizations.of(context).translate('end_date')),
+                    title: Text(AppLocalizations.of(dialogContext)
+                        .translate('end_date')),
                     subtitle:
                         Text('${endDate.year}-${endDate.month}-${endDate.day}'),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final picked = await showDatePicker(
-                        context: context,
+                        context: dialogContext,
                         initialDate: endDate,
                         firstDate: startDate, // 开始日期之后
                         lastDate: DateTime(2030),
@@ -280,19 +283,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(dialogContext).pop();
                   },
-                  child: Text(AppLocalizations.of(context).translate('cancel')),
+                  child: Text(
+                      AppLocalizations.of(dialogContext).translate('cancel')),
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    context.read<StatisticsBloc>().add(
+                    Navigator.of(dialogContext).pop();
+                    // 使用外部context访问StatisticsBloc
+                    outerContext.read<StatisticsBloc>().add(
                           LoadDateRangeStatistics(startDate, endDate),
                         );
                   },
-                  child:
-                      Text(AppLocalizations.of(context).translate('confirm')),
+                  child: Text(
+                      AppLocalizations.of(dialogContext).translate('confirm')),
                 ),
               ],
             );

@@ -14,6 +14,11 @@ class SettingsRepository {
   static const String _keyBackupInterval = 'backup_interval';
   static const String _keyLastBackupTime = 'last_backup_time';
 
+  // 添加语言相关常量
+  static const String languageSystem = 'system';
+  static const String languageZh = 'zh';
+  static const String languageEn = 'en';
+
   final SharedPreferences _prefs;
   final _settingsController = StreamController<void>.broadcast();
 
@@ -38,7 +43,7 @@ class SettingsRepository {
     _settingsController.add(null);
   }
 
-  String getLanguage() => _prefs.getString(_keyLanguage) ?? 'zh';
+  String getLanguage() => _prefs.getString(_keyLanguage) ?? languageSystem;
 
   /// 通知设置
   Future<void> setNotificationEnabled(bool value) async {
@@ -121,7 +126,7 @@ class SettingsRepository {
     await _prefs.setInt(_keyBackupInterval, 7);
     await _prefs.setInt(
         _keyLastBackupTime, DateTime.now().millisecondsSinceEpoch);
-    await _prefs.setString(_keyLanguage, 'zh');
+    await _prefs.setString(_keyLanguage, languageSystem);
     _settingsController.add(null);
   }
 

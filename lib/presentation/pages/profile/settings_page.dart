@@ -198,6 +198,10 @@ class SettingsPage extends StatelessWidget {
         },
         items: const [
           DropdownMenuItem(
+            value: 'system',
+            child: AppText('system_language'),
+          ),
+          DropdownMenuItem(
             value: 'zh',
             child: AppText('chinese'),
           ),
