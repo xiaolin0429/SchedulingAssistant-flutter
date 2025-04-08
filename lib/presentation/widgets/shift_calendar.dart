@@ -8,12 +8,14 @@ class ShiftCalendar extends StatelessWidget {
   final DateTime selectedDate;
   final List<Shift> shifts;
   final Function(DateTime) onDateSelected;
+  final bool enableDaySelection;
 
   const ShiftCalendar({
     super.key,
     required this.selectedDate,
     required this.shifts,
     required this.onDateSelected,
+    this.enableDaySelection = true,
   });
 
   @override
@@ -28,9 +30,11 @@ class ShiftCalendar extends StatelessWidget {
         focusedDay: selectedDate,
         currentDay: DateTime.now(), // 设置今日日期
         selectedDayPredicate: (day) => isSameDay(selectedDate, day),
-        onDaySelected: (selectedDay, focusedDay) {
-          onDateSelected(selectedDay);
-        },
+        onDaySelected: enableDaySelection
+            ? (selectedDay, focusedDay) {
+                onDateSelected(selectedDay);
+              }
+            : null,
         onPageChanged: (focusedDay) {
           // 当翻页时，保持在当前选中的日期
           onDateSelected(focusedDay);

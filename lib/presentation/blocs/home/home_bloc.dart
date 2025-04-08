@@ -5,6 +5,7 @@ import '../../../data/repositories/shift_type_repository.dart';
 import '../../../data/repositories/calendar_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 import '../../../data/models/monthly_statistics.dart';
+import '../../../data/models/shift.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 import 'package:flutter/foundation.dart';
@@ -36,6 +37,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<UpdateTodayShift>(_onUpdateTodayShift);
     on<QuickAddShift>(_onQuickAddShift);
     on<LoadMonthlyStatistics>(_onLoadMonthlyStatistics);
+    on<StartBatchScheduling>(_onStartBatchScheduling);
+    on<ExecuteBatchScheduling>(_onExecuteBatchScheduling);
+    on<ResetShiftSelection>(_onResetShiftSelection);
   }
 
   /// 加载主页数据
@@ -419,6 +423,115 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         emit(currentState.copyWith(
           monthlyShifts: monthlyShifts,
           monthlyStatistics: stats,
+        ));
+      } catch (e) {
+        emit(HomeError(e.toString()));
+      }
+    }
+  }
+
+  /// 启动批量排班
+  Future<void> _onStartBatchScheduling(
+      StartBatchScheduling event, Emitter<HomeState> emit) async {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      try {
+        final shiftTypes = await shiftTypeRepository.getAll();
+        // 这里不直接修改状态，而是触发UI层弹出对话框
+        // 在UI层实现批量排班对话框的显示
+        emit(currentState.copyWith(
+          availableShiftTypes: shiftTypes,
+        ));
+      } catch (e) {
+        emit(HomeError(e.toString()));
+      }
+    }
+  }
+
+  /// 执行批量排班
+  Future<void> _onExecuteBatchScheduling(
+      ExecuteBatchScheduling event, Emitter<HomeState> emit) async {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      try {
+        emit(currentState.copyWith(isSyncing: true)); // 显示进度指示器
+
+        // 获取所选班次类型
+        final shiftType = await shiftTypeRepository.getById(event.shiftTypeId);
+        if (shiftType == null) {
+          throw Exception('班次类型不存在');
+        }
+
+        debugPrint(
+            '开始批量排班: ${event.startDate} 至 ${event.endDate}, 班次类型: ${shiftType.name}');
+
+        int totalDays = 0;
+
+        // 使用选定的具体日期进行排班
+        if (event.selectedDates != null && event.selectedDates!.isNotEmpty) {
+          debugPrint('使用选定的具体日期进行排班，共 ${event.selectedDates!.length} 天');
+
+          for (final selectedDate in event.selectedDates!) {
+            // 创建班次
+            final shift = Shift(
+              date: DateFormat('yyyy-MM-dd').format(selectedDate),
+              type: shiftType,
+              startTime: shiftType.startTime,
+              endTime: shiftType.endTime,
+            );
+
+            await shiftRepository.upsertShift(shift);
+            totalDays++;
+            debugPrint('创建班次: ${shift.date}, 类型: ${shift.type.name}');
+          }
+        }
+
+        debugPrint('批量排班完成，共创建 $totalDays 个班次');
+
+        // 重新加载当前月份的排班数据
+        final monthlyShifts = await shiftRepository.getShiftsByMonth(
+          currentState.selectedDate.year,
+          currentState.selectedDate.month,
+        );
+
+        // 重新计算统计数据
+        final stats = await _calculateMonthlyStatistics(
+          currentState.selectedDate.year,
+          currentState.selectedDate.month,
+        );
+
+        // 更新今日排班（如果当天也被安排了）
+        final todayDateStr =
+            DateFormat('yyyy-MM-dd').format(currentState.selectedDate);
+        Shift? todayShift = currentState.todayShift;
+        for (final shift in monthlyShifts) {
+          if (shift.date == todayDateStr) {
+            todayShift = shift;
+            break;
+          }
+        }
+
+        emit(currentState.copyWith(
+          monthlyShifts: monthlyShifts,
+          monthlyStatistics: stats,
+          todayShift: todayShift,
+          isSyncing: false,
+        ));
+      } catch (e) {
+        debugPrint('批量排班失败: $e');
+        emit(HomeError(e.toString()));
+      }
+    }
+  }
+
+  /// 重置班次选择状态
+  Future<void> _onResetShiftSelection(
+      ResetShiftSelection event, Emitter<HomeState> emit) async {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      try {
+        emit(currentState.copyWith(
+          isSelectingShiftType: false,
         ));
       } catch (e) {
         emit(HomeError(e.toString()));
