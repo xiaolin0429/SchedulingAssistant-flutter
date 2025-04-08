@@ -220,7 +220,7 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
         final shift = await _shiftRepository.getShiftByDate(date);
 
         if (shift != null) {
-          existingDates.add('${dateStr} (${shift.type.name})');
+          existingDates.add('$dateStr (${shift.type.name})');
         }
       }
 
