@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../../data/models/shift.dart';
 import '../../data/models/shift_type.dart';
 import '../../data/repositories/shift_repository.dart';
 import '../../core/di/injection_container.dart';
