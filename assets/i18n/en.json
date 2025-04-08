@@ -73,9 +73,9 @@
   "note_label": "Note:",
   "add_note": "Add Note",
   "note_hint": "Enter note content",
-  "add_shift": "Add Shift",
+  "add_shift": "Start Shift",
   "next_shift": "Next Shift",
-  "no_shift": "No shift assigned",
+  "no_shift": "No Shift",
   "no_shift_for_note": "No shift information, cannot add note",
 
   "shift_type_management": "Shift Type Management",
@@ -253,5 +253,23 @@
   "notification_permission_title": "Notification Permission",
   "notification_permission_desc": "Enabling notifications requires system permission. Once allowed, you will receive alarm and scheduling reminders.",
   "notification_enabled_message": "Notifications enabled",
-  "notification_disabled_message": "Notifications disabled"
+  "notification_disabled_message": "Notifications disabled",
+
+  "batch_scheduling": "Batch Schedule",
+  "date_range": "Date Range",
+  "shift_type": "Shift Type",
+  "week_days": "Weekdays",
+  "monday": "Mon",
+  "tuesday": "Tue",
+  "wednesday": "Wed",
+  "thursday": "Thu",
+  "friday": "Fri",
+  "saturday": "Sat",
+  "sunday": "Sun",
+  "selected": "Selected",
+  "days": "days",
+  "overwrite": "Overwrite",
+  "shift_conflict": "Shift Conflict",
+  "shift_conflict_message": "The following dates already have shifts scheduled:",
+  "shift_conflict_confirm": "Are you sure you want to overwrite these existing shifts?"
 } 

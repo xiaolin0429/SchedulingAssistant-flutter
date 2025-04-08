@@ -106,3 +106,36 @@ class LoadMonthlyStatistics extends HomeEvent {
   @override
   List<Object> get props => [year, month];
 }
+
+/// 启动批量排班
+class StartBatchScheduling extends HomeEvent {
+  const StartBatchScheduling();
+}
+
+/// 执行批量排班
+class ExecuteBatchScheduling extends HomeEvent {
+  final DateTime startDate;
+  final DateTime endDate;
+  final int shiftTypeId;
+  final List<DateTime>? selectedDates; // 选中的具体日期
+
+  const ExecuteBatchScheduling({
+    required this.startDate,
+    required this.endDate,
+    required this.shiftTypeId,
+    required this.selectedDates,
+  });
+
+  @override
+  List<Object> get props => [
+        startDate,
+        endDate,
+        shiftTypeId,
+        if (selectedDates != null) selectedDates!
+      ];
+}
+
+/// 重置排班选择状态
+class ResetShiftSelection extends HomeEvent {
+  const ResetShiftSelection();
+}

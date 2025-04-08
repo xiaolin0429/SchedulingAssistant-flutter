@@ -6,8 +6,9 @@ import '../../blocs/home/home_bloc.dart';
 import '../../blocs/home/home_event.dart';
 import '../../blocs/home/home_state.dart';
 import '../../widgets/shift_calendar.dart';
-import '../../widgets/shift_type_selection_dialog.dart';
+import '../../widgets/batch_scheduling_dialog.dart';
 import '../../../data/models/shift.dart';
+import '../../../data/models/shift_type.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -27,36 +28,6 @@ class HomePage extends StatelessWidget {
         }
 
         if (state is HomeLoaded) {
-          // 如果正在选择班次类型，显示选择对话框
-          if (state.isSelectingShiftType && state.availableShiftTypes != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!state.isSelectingShiftType) return;
-              if (!context.mounted) return;
-              showDialog(
-                context: context,
-                barrierDismissible: true,
-                builder: (dialogContext) => ShiftTypeSelectionDialog(
-                  shiftTypes: state.availableShiftTypes!,
-                  selectedDate: state.selectedDate,
-                  onSelected: (selectedType) {
-                    if (!context.mounted) return;
-                    context.read<HomeBloc>().add(
-                          UpdateTodayShift(
-                            Shift(
-                              date: DateFormat('yyyy-MM-dd')
-                                  .format(state.selectedDate),
-                              type: selectedType,
-                              startTime: selectedType.startTime,
-                              endTime: selectedType.endTime,
-                            ),
-                          ),
-                        );
-                  },
-                ),
-              );
-            });
-          }
-
           return SafeArea(
             child: Column(
               children: [
@@ -140,6 +111,7 @@ class HomePage extends StatelessWidget {
                           // 只更新选中的日期，不触发排班对话框
                           context.read<HomeBloc>().add(SelectDate(date));
                         },
+                        enableDaySelection: true,
                       ),
                       const SizedBox(height: 16),
                       // 今日排班卡片
@@ -235,10 +207,13 @@ class HomePage extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        // 只有点击开始排班按钮时，才触发排班对话框
-                                        context
-                                            .read<HomeBloc>()
-                                            .add(const StartShift());
+                                        if (state.availableShiftTypes != null) {
+                                          _showShiftTypeSelectionDialog(
+                                            context,
+                                            state.availableShiftTypes!,
+                                            state.selectedDate,
+                                          );
+                                        }
                                       },
                                       icon: const Icon(Icons.add, size: 20),
                                       label: Text(AppLocalizations.of(context)
@@ -253,12 +228,25 @@ class HomePage extends StatelessWidget {
                                       onPressed: () {
                                         context
                                             .read<HomeBloc>()
-                                            .add(const NextShift());
+                                            .add(const StartBatchScheduling());
+
+                                        // 显示批量排班对话框
+                                        if (state.availableShiftTypes != null) {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) =>
+                                                BatchSchedulingDialog(
+                                              shiftTypes:
+                                                  state.availableShiftTypes!,
+                                              initialDate: state.selectedDate,
+                                            ),
+                                          );
+                                        }
                                       },
-                                      icon:
-                                          const Icon(Icons.skip_next, size: 20),
+                                      icon: const Icon(Icons.date_range,
+                                          size: 20),
                                       label: Text(AppLocalizations.of(context)
-                                          .translate('next_shift')),
+                                          .translate('batch_scheduling')),
                                       style: ElevatedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 12),
@@ -342,6 +330,69 @@ class HomePage extends StatelessWidget {
               }
             },
             child: Text(AppLocalizations.of(context).translate('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示班次选择对话框
+  void _showShiftTypeSelectionDialog(
+      BuildContext context, List<ShiftType> shiftTypes, DateTime selectedDate) {
+    final dateStr =
+        '${selectedDate.year}年${selectedDate.month}月${selectedDate.day}日';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('选择$dateStr的班次'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: shiftTypes.length,
+            itemBuilder: (context, index) {
+              final type = shiftTypes[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: type.colorValue,
+                  child: Text(
+                    type.name.substring(0, 1),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text(type.name),
+                subtitle: type.startTimeOfDay != null &&
+                        type.endTimeOfDay != null
+                    ? Text(
+                        '${type.startTimeOfDay!.format(context)} - ${type.endTimeOfDay!.format(context)}')
+                    : null,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  // 选择班次后，添加更新事件
+                  if (context.mounted) {
+                    context.read<HomeBloc>().add(
+                          UpdateTodayShift(
+                            Shift(
+                              date:
+                                  DateFormat('yyyy-MM-dd').format(selectedDate),
+                              type: type,
+                              startTime: type.startTime,
+                              endTime: type.endTime,
+                            ),
+                          ),
+                        );
+                  }
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).translate('cancel')),
           ),
         ],
       ),
