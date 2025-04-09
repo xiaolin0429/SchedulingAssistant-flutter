@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+//import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+//import 'package:path_provider/path_provider.dart';
+//import 'dart:io';
 import '../../../core/localization/app_text.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/di/injection_container.dart' as di;
 
 class HelpFeedbackPage extends StatefulWidget {
   const HelpFeedbackPage({super.key});
@@ -328,29 +330,19 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
       final appTitle = 'app_title'.tr(context);
       final exportLogsTitle = 'export_logs'.tr(context);
 
-      // 获取应用文档目录
-      final documentsDirectory = await getApplicationDocumentsDirectory();
+      // 使用依赖注入获取LogService实例
+      final logService = di.getIt<LogService>();
+      final exportPath = await logService.exportLogFile();
 
-      // 创建临时日志文件
-      final logFile = File('${documentsDirectory.path}/app_logs.txt');
-
-      // 生成日志内容
-      await logFile.writeAsString('''
-日志导出时间: ${DateTime.now()}
-系统信息: ${await _getSystemInfo()}
-应用版本: 1.0.0
-----------------------------
-[INFO] 应用启动
-[INFO] 加载用户设置
-[INFO] 加载班次数据
-[INFO] 初始化完成
-''');
-
-      // 分享日志文件
-      await Share.shareXFiles(
-        [XFile(logFile.path)],
-        subject: '$appTitle - $exportLogsTitle',
-      );
+      if (exportPath != null) {
+        // 分享日志文件
+        await Share.shareXFiles(
+          [XFile(exportPath)],
+          subject: '$appTitle - $exportLogsTitle',
+        );
+      } else {
+        throw Exception('导出日志文件失败');
+      }
     } catch (e) {
       if (mounted) {
         // 在mounted检查后重新获取上下文值
@@ -361,36 +353,6 @@ class _HelpFeedbackPageState extends State<HelpFeedbackPage> {
                   .replaceAll('{message}', e.toString()))),
         );
       }
-    }
-  }
-
-  Future<String> _getSystemInfo() async {
-    try {
-      return '${await _getPlatformVersion()} / ${await _getDeviceModel()}';
-    } catch (e) {
-      return '未知';
-    }
-  }
-
-  Future<String> _getPlatformVersion() async {
-    try {
-      return await const MethodChannel('app.channel/info')
-          .invokeMethod('getPlatformVersion')
-          .then((value) => value.toString())
-          .catchError((_) => 'Unknown');
-    } catch (e) {
-      return 'Unknown';
-    }
-  }
-
-  Future<String> _getDeviceModel() async {
-    try {
-      return await const MethodChannel('app.channel/info')
-          .invokeMethod('getDeviceModel')
-          .then((value) => value.toString())
-          .catchError((_) => 'Unknown');
-    } catch (e) {
-      return 'Unknown';
     }
   }
 }

@@ -6,14 +6,18 @@ import '../models/monthly_statistics.dart';
 import '../models/shift_type.dart';
 import 'base_repository.dart';
 import 'package:flutter/foundation.dart';
+import '../../core/utils/logger.dart';
+import '../../core/di/injection_container.dart';
 
 /// 班次数据仓库
 class ShiftRepository implements BaseRepository<Shift> {
   final ShiftDao _shiftDao;
   late final StreamController<List<Shift>> _shiftController;
+  late final LogService _logger;
 
   ShiftRepository(this._shiftDao) {
     _shiftController = StreamController<List<Shift>>.broadcast();
+    _logger = getIt<LogService>();
   }
 
   // 获取班次流，用于实时更新UI
@@ -25,7 +29,7 @@ class ShiftRepository implements BaseRepository<Shift> {
       final dateStr = DateFormat('yyyy-MM-dd').format(date);
       final shift = await _shiftDao.getShiftByDate(dateStr);
       if (shift == null) return null;
-      
+
       // 验证班次类型是否存在
       try {
         // 访问班次类型的属性以触发可能的错误
@@ -33,6 +37,7 @@ class ShiftRepository implements BaseRepository<Shift> {
         return shift;
       } catch (e) {
         debugPrint('班次的类型已被删除: ${shift.type.id}');
+        _logger.w('班次的类型已被删除', tag: 'SHIFT_REPO');
         // 返回带有默认类型的班次
         return shift.copyWith(
           type: ShiftType(
@@ -44,6 +49,7 @@ class ShiftRepository implements BaseRepository<Shift> {
       }
     } catch (e) {
       debugPrint('获取班次时发生错误: $e');
+      _logger.e('获取班次失败', tag: 'SHIFT_REPO', error: e);
       return null;
     }
   }
@@ -57,7 +63,7 @@ class ShiftRepository implements BaseRepository<Shift> {
         DateFormat('yyyy-MM-dd').format(startDate),
         DateFormat('yyyy-MM-dd').format(endDate),
       );
-      
+
       // 处理每个班次的类型
       return shifts.map((shift) {
         try {
@@ -85,7 +91,7 @@ class ShiftRepository implements BaseRepository<Shift> {
   /// 获取月度统计数据
   Future<MonthlyStatistics> getMonthlyStatistics(int year, int month) async {
     final shifts = await getShiftsByMonth(year, month);
-    
+
     // 按班次类型ID统计天数
     final Map<int, int> typeCounts = {};
     int totalWorkHours = 0;
@@ -93,7 +99,7 @@ class ShiftRepository implements BaseRepository<Shift> {
     for (final shift in shifts) {
       try {
         if (shift.type.id == null) continue;
-        
+
         // 统计班次类型天数
         typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
 
@@ -109,15 +115,13 @@ class ShiftRepository implements BaseRepository<Shift> {
     }
 
     // 计算总工作天数（不包括休息日）
-    final totalWorkDays = shifts
-        .where((s) {
-          try {
-            return !s.type.isRestDay;
-          } catch (e) {
-            return true; // 对于已删除的班次类型，默认计入工作天数
-          }
-        })
-        .length;
+    final totalWorkDays = shifts.where((s) {
+      try {
+        return !s.type.isRestDay;
+      } catch (e) {
+        return true; // 对于已删除的班次类型，默认计入工作天数
+      }
+    }).length;
 
     return MonthlyStatistics(
       shiftTypeCounts: typeCounts,
@@ -146,23 +150,53 @@ class ShiftRepository implements BaseRepository<Shift> {
 
   @override
   Future<int> insert(Shift shift) async {
-    final id = await _shiftDao.insertShift(shift);
-    getAll(); // 更新流
-    return id;
+    try {
+      final id = await _shiftDao.insertShift(shift);
+      _logger.logUserAction('添加班次', data: {
+        'date': shift.date,
+        'shiftType': shift.type.name,
+      });
+      getAll(); // 更新流
+      return id;
+    } catch (e) {
+      _logger.e('添加班次失败', tag: 'SHIFT_REPO', error: e);
+      rethrow;
+    }
   }
 
   @override
   Future<int> update(Shift shift) async {
-    final result = await _shiftDao.updateShift(shift);
-    getAll(); // 更新流
-    return result;
+    try {
+      final result = await _shiftDao.updateShift(shift);
+      _logger.logUserAction('更新班次', data: {
+        'date': shift.date,
+        'shiftType': shift.type.name,
+      });
+      getAll(); // 更新流
+      return result;
+    } catch (e) {
+      _logger.e('更新班次失败', tag: 'SHIFT_REPO', error: e);
+      rethrow;
+    }
   }
 
   @override
   Future<int> delete(int id) async {
-    final result = await _shiftDao.deleteShift(id);
-    getAll(); // 更新流
-    return result;
+    try {
+      final shift = await getById(id);
+      final result = await _shiftDao.deleteShift(id);
+      if (shift != null) {
+        _logger.logUserAction('删除班次', data: {
+          'date': shift.date,
+          'shiftType': shift.type.name,
+        });
+      }
+      getAll(); // 更新流
+      return result;
+    } catch (e) {
+      _logger.e('删除班次失败', tag: 'SHIFT_REPO', error: e);
+      rethrow;
+    }
   }
 
   @override
@@ -191,25 +225,42 @@ class ShiftRepository implements BaseRepository<Shift> {
 
   /// 批量插入或更新班次
   Future<void> upsertShifts(List<Shift> shifts) async {
-    await _shiftDao.upsertShifts(shifts);
-    getAll(); // 更新流
+    try {
+      await _shiftDao.upsertShifts(shifts);
+      _logger.logUserAction('批量更新班次', data: {
+        'count': shifts.length,
+      });
+      getAll(); // 更新流
+    } catch (e) {
+      _logger.e('批量更新班次失败', tag: 'SHIFT_REPO', error: e);
+      rethrow;
+    }
   }
 
   /// 更新班次备注
   Future<int> updateShiftNote(int id, String note) async {
-    final shift = await getById(id);
-    if (shift == null) {
-      throw Exception('班次不存在');
+    try {
+      final shift = await getById(id);
+      if (shift == null) {
+        throw Exception('班次不存在');
+      }
+
+      final updatedShift = shift.copyWith(note: note);
+      final result = await update(updatedShift);
+      _logger.logUserAction('更新班次备注', data: {
+        'date': shift.date,
+      });
+      getAll(); // 更新流
+      return result;
+    } catch (e) {
+      _logger.e('更新班次备注失败', tag: 'SHIFT_REPO', error: e);
+      rethrow;
     }
-    
-    final updatedShift = shift.copyWith(note: note);
-    final result = await update(updatedShift);
-    getAll(); // 更新流
-    return result;
   }
 
   /// 获取指定日期范围的班次
-  Future<List<Shift>> getShiftsByDateRange(String startDate, String endDate) async {
+  Future<List<Shift>> getShiftsByDateRange(
+      String startDate, String endDate) async {
     return await _shiftDao.getShiftsByDateRange(startDate, endDate);
   }
 

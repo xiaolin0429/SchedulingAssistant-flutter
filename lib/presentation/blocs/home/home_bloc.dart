@@ -10,6 +10,8 @@ import 'home_event.dart';
 import 'home_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/di/injection_container.dart' as di;
 
 /// 主页状态管理bloc
 /// 负责处理主页的数据加载、排班操作和统计信息
@@ -199,36 +201,75 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
-        debugPrint('更新班次: ${event.shift.date}, 类型: ${event.shift.type.name}');
-        await shiftRepository.upsertShift(event.shift);
+        final logger = di.getIt<LogService>();
 
-        // 重新加载月度数据以保持一致性
+        emit(currentState.copyWith(isSyncing: true));
+
+        // 查找是否已有当天的班次记录
+        final date = DateTime.parse(event.shift.date);
+        final existingShift = await shiftRepository.getShiftByDate(date);
+
+        int shiftId;
+        String actionType;
+
+        if (existingShift != null) {
+          // 更新现有班次
+          final updatedShift = existingShift.copyWith(
+            type: event.shift.type,
+            startTime: event.shift.startTime,
+            endTime: event.shift.endTime,
+          );
+          shiftId = await shiftRepository.update(updatedShift);
+          actionType = "更新";
+          logger.logUserAction('更新班次', data: {
+            'date': event.shift.date,
+            'shiftType': event.shift.type.name,
+            'isRestDay': event.shift.type.isRestDay,
+          });
+        } else {
+          // 添加新班次
+          shiftId = await shiftRepository.insert(event.shift);
+          actionType = "添加";
+          logger.logUserAction('添加班次', data: {
+            'date': event.shift.date,
+            'shiftType': event.shift.type.name,
+            'isRestDay': event.shift.type.isRestDay,
+          });
+        }
+
+        debugPrint('$actionType班次成功，ID: $shiftId');
+
+        // 重新加载月度数据
+        final selectedDate = currentState.selectedDate;
         final monthlyShifts = await shiftRepository.getShiftsByMonth(
-          currentState.selectedDate.year,
-          currentState.selectedDate.month,
+          selectedDate.year,
+          selectedDate.month,
         );
-        debugPrint('更新后本月班次数量: ${monthlyShifts.length}');
 
+        // 获取更新后的今日班次
+        final updatedTodayShift = await shiftRepository.getShiftByDate(date);
+        debugPrint('更新后的班次信息: ${updatedTodayShift?.type.name ?? '无班次'}');
+
+        // 重新计算统计数据
         final stats = await _calculateMonthlyStatistics(
-          currentState.selectedDate.year,
-          currentState.selectedDate.month,
+          selectedDate.year,
+          selectedDate.month,
         );
-        debugPrint(
-            '更新后月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
 
         emit(currentState.copyWith(
-          todayShift: event.shift,
+          todayShift: updatedTodayShift,
           monthlyShifts: monthlyShifts,
           monthlyStatistics: stats,
-          isSelectingShiftType: false,
+          isSyncing: false,
         ));
-        debugPrint('班次更新完成');
       } catch (e) {
         debugPrint('更新班次时发生错误: $e');
+        final logger = di.getIt<LogService>();
+        logger.e('更新班次失败', tag: 'HOME_BLOC', error: e);
+
+        emit(currentState.copyWith(isSyncing: false));
         emit(HomeError(e.toString()));
       }
-    } else {
-      debugPrint('当前不是HomeLoaded状态，无法处理更新班次事件');
     }
   }
 
@@ -312,10 +353,32 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
+        final logger = di.getIt<LogService>();
         emit(currentState.copyWith(isSyncing: true));
-        await calendarRepository.syncCalendar(currentState.monthlyShifts);
+
+        // 获取所有班次用于同步
+        final allShifts = await shiftRepository.getAll();
+
+        // 调用同步方法并记录成功
+        await calendarRepository.syncCalendar(allShifts);
+
+        logger.logUserAction('同步日历成功', data: {
+          'shiftsCount': allShifts.length,
+        });
+        debugPrint('日历同步成功');
+
         emit(currentState.copyWith(isSyncing: false));
       } catch (e) {
+        debugPrint('同步日历时发生错误: $e');
+        final logger = di.getIt<LogService>();
+        logger.e('同步日历失败', tag: 'HOME_BLOC', error: e);
+
+        // 记录同步失败
+        logger.logUserAction('同步日历失败', data: {
+          'reason': e.toString(),
+        });
+
+        emit(currentState.copyWith(isSyncing: false));
         emit(HomeError(e.toString()));
       }
     }
@@ -358,44 +421,43 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   /// 保存班次备注
   Future<void> _onSaveNoteToShift(
       SaveNoteToShift event, Emitter<HomeState> emit) async {
-    debugPrint('保存班次备注');
-
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
-
       try {
-        debugPrint('准备更新班次备注: ${event.note}');
+        final logger = di.getIt<LogService>();
+        emit(currentState.copyWith(isSyncing: true));
 
-        // 创建更新后的班次对象
-        final updatedShift = event.shift.copyWith(
-          note: event.note,
-        );
+        // 确保班次存在
+        if (event.shift.id == null) {
+          throw Exception('班次ID不能为空');
+        }
 
-        // 保存到数据库
-        await shiftRepository.upsertShift(updatedShift);
+        // 保存备注
+        await shiftRepository.updateShiftNote(event.shift.id!, event.note);
 
-        // 重新加载月度数据以保持一致性
-        final monthlyShifts = await shiftRepository.getShiftsByMonth(
-          currentState.selectedDate.year,
-          currentState.selectedDate.month,
-        );
+        logger.logUserAction('保存班次备注', data: {
+          'shiftId': event.shift.id,
+          'date': event.shift.date,
+          'noteLength': event.note.length,
+        });
 
-        // 只有当当前选中日期与更新的班次日期相同时，才更新todayShift
-        final newTodayShift =
-            DateFormat('yyyy-MM-dd').format(currentState.selectedDate) ==
-                    updatedShift.date
-                ? updatedShift
-                : currentState.todayShift;
+        // 重新获取今日班次以更新UI
+        final selectedDate = DateTime.parse(event.shift.date);
+        final updatedShift = await shiftRepository.getShiftByDate(selectedDate);
 
-        // 更新UI状态
+        // 更新状态
         emit(currentState.copyWith(
-          todayShift: newTodayShift,
-          monthlyShifts: monthlyShifts,
+          todayShift: updatedShift,
+          isSyncing: false,
         ));
 
-        debugPrint('班次备注已更新成功');
+        debugPrint('备注保存成功');
       } catch (e) {
-        debugPrint('更新班次备注时发生错误: $e');
+        debugPrint('保存备注时发生错误: $e');
+        final logger = di.getIt<LogService>();
+        logger.e('保存班次备注失败', tag: 'HOME_BLOC', error: e);
+
+        emit(currentState.copyWith(isSyncing: false));
         emit(HomeError(e.toString()));
       }
     }
@@ -454,44 +516,52 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
-        emit(currentState.copyWith(isSyncing: true)); // 显示进度指示器
+        final logger = di.getIt<LogService>();
+        emit(currentState.copyWith(isSyncing: true));
 
-        // 获取所选班次类型
-        final shiftType = await shiftTypeRepository.getById(event.shiftTypeId);
-        if (shiftType == null) {
-          throw Exception('班次类型不存在');
+        // 获取选中的班次类型
+        final shiftTypes = await shiftTypeRepository.getAll();
+        final selectedType = shiftTypes.firstWhere(
+          (type) => type.id == event.shiftTypeId,
+          orElse: () => throw Exception('未找到选中的班次类型'),
+        );
+
+        // 确保selectedDates不为null且不为空
+        final selectedDates = event.selectedDates;
+        if (selectedDates == null || selectedDates.isEmpty) {
+          throw Exception('未选择任何日期');
         }
 
-        debugPrint(
-            '开始批量排班: ${event.startDate} 至 ${event.endDate}, 班次类型: ${shiftType.name}');
+        logger.logUserAction('开始执行批量排班', data: {
+          'startDate': DateFormat('yyyy-MM-dd').format(event.startDate),
+          'endDate': DateFormat('yyyy-MM-dd').format(event.endDate),
+          'selectedDatesCount': selectedDates.length,
+          'shiftTypeName': selectedType.name,
+        });
 
-        int totalDays = 0;
-
-        // 使用选定的具体日期进行排班
-        if (event.selectedDates != null && event.selectedDates!.isNotEmpty) {
-          debugPrint('使用选定的具体日期进行排班，共 ${event.selectedDates!.length} 天');
-
-          for (final selectedDate in event.selectedDates!) {
-            // 创建班次
-            final shift = Shift(
-              date: DateFormat('yyyy-MM-dd').format(selectedDate),
-              type: shiftType,
-              startTime: shiftType.startTime,
-              endTime: shiftType.endTime,
-            );
-
-            await shiftRepository.upsertShift(shift);
-            totalDays++;
-            debugPrint('创建班次: ${shift.date}, 类型: ${shift.type.name}');
-          }
+        // 创建新的班次对象列表
+        final shifts = <Shift>[];
+        for (final date in selectedDates) {
+          shifts.add(Shift(
+            date: DateFormat('yyyy-MM-dd').format(date),
+            type: selectedType,
+            startTime: selectedType.startTime,
+            endTime: selectedType.endTime,
+          ));
         }
 
-        debugPrint('批量排班完成，共创建 $totalDays 个班次');
+        // 批量更新或插入班次
+        await shiftRepository.upsertShifts(shifts);
 
-        // 重新加载当前月份的排班数据
+        // 重新加载月度数据
         final monthlyShifts = await shiftRepository.getShiftsByMonth(
           currentState.selectedDate.year,
           currentState.selectedDate.month,
+        );
+
+        // 重新获取今日班次
+        final todayShift = await shiftRepository.getShiftByDate(
+          currentState.selectedDate,
         );
 
         // 重新计算统计数据
@@ -500,25 +570,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           currentState.selectedDate.month,
         );
 
-        // 更新今日排班（如果当天也被安排了）
-        final todayDateStr =
-            DateFormat('yyyy-MM-dd').format(currentState.selectedDate);
-        Shift? todayShift = currentState.todayShift;
-        for (final shift in monthlyShifts) {
-          if (shift.date == todayDateStr) {
-            todayShift = shift;
-            break;
-          }
-        }
-
         emit(currentState.copyWith(
           monthlyShifts: monthlyShifts,
-          monthlyStatistics: stats,
           todayShift: todayShift,
+          monthlyStatistics: stats,
           isSyncing: false,
         ));
+
+        logger.logUserAction('批量排班完成', data: {
+          'shiftsCount': shifts.length,
+        });
+
+        debugPrint('批量排班完成，更新了 ${shifts.length} 个班次');
       } catch (e) {
-        debugPrint('批量排班失败: $e');
+        debugPrint('批量排班时发生错误: $e');
+        final logger = di.getIt<LogService>();
+        logger.e('执行批量排班失败', tag: 'HOME_BLOC', error: e);
+
+        emit(currentState.copyWith(isSyncing: false));
         emit(HomeError(e.toString()));
       }
     }
