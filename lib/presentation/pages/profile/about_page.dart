@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 import '../../../core/localization/app_localizations.dart';
+import 'legal_document_page.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -11,7 +12,8 @@ class AboutPage extends StatefulWidget {
   State<AboutPage> createState() => _AboutPageState();
 }
 
-class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMixin {
+class _AboutPageState extends State<AboutPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   String _appVersion = '';
   String _buildNumber = '';
@@ -63,7 +65,6 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
             _buildAppInfo(),
             _buildDeveloperInfo(),
             _buildLicenseInfo(),
-            _buildVersionHistory(),
             if (_showEasterEgg) _buildEasterEgg(),
             const SizedBox(height: 32),
           ],
@@ -151,7 +152,8 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
             const SizedBox(height: 16),
             _buildDeveloperItem(
               name: AppLocalizations.of(context).translate('developer'),
-              role: AppLocalizations.of(context).translate('application_development'),
+              role: AppLocalizations.of(context)
+                  .translate('application_development'),
               email: 'developer@example.com',
             ),
             const Divider(),
@@ -182,8 +184,8 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: Colors.primaries[
-                math.Random().nextInt(Colors.primaries.length)],
+            backgroundColor: Colors
+                .primaries[math.Random().nextInt(Colors.primaries.length)],
             child: Text(
               name.substring(0, 1),
               style: const TextStyle(color: Colors.white),
@@ -224,127 +226,53 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
       child: Column(
         children: [
           ListTile(
-            title: Text(AppLocalizations.of(context).translate('open_source_licenses')),
-            subtitle: Text(AppLocalizations.of(context).translate('third_party_licenses')),
+            title: Text(
+                AppLocalizations.of(context).translate('open_source_licenses')),
+            subtitle: Text(
+                AppLocalizations.of(context).translate('third_party_licenses')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               showLicensePage(
                 context: context,
-                applicationName: AppLocalizations.of(context).translate('app_title'),
+                applicationName:
+                    AppLocalizations.of(context).translate('app_title'),
                 applicationVersion: _appVersion,
-                applicationLegalese: '© 2023 ${AppLocalizations.of(context).translate('app_title')}',
+                applicationLegalese:
+                    '© 2023 ${AppLocalizations.of(context).translate('app_title')}',
               );
             },
           ),
           const Divider(height: 1),
           ListTile(
-            title: Text(AppLocalizations.of(context).translate('privacy_policy')),
+            title:
+                Text(AppLocalizations.of(context).translate('privacy_policy')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => _launchUrl('https://example.com/privacy'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LegalDocumentPage(
+                    documentType: LegalDocumentType.privacyPolicy,
+                  ),
+                ),
+              );
+            },
           ),
           const Divider(height: 1),
           ListTile(
-            title: Text(AppLocalizations.of(context).translate('user_agreement')),
+            title:
+                Text(AppLocalizations.of(context).translate('user_agreement')),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => _launchUrl('https://example.com/terms'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVersionHistory() {
-    final versionHistory = [
-      {
-        'version': '1.0.0',
-        'date': '2023-12-15',
-        'changes': [
-          AppLocalizations.of(context).translate('first_release'),
-          AppLocalizations.of(context).translate('basic_scheduling'),
-          AppLocalizations.of(context).translate('alarm_reminder'),
-          AppLocalizations.of(context).translate('statistics_analysis'),
-        ],
-      },
-      {
-        'version': '1.1.0',
-        'date': '2024-02-20',
-        'changes': [
-          AppLocalizations.of(context).translate('add_backup_restore'),
-          AppLocalizations.of(context).translate('optimize_ui'),
-          AppLocalizations.of(context).translate('fix_known_issues'),
-        ],
-      },
-      {
-        'version': '1.2.0',
-        'date': '2024-04-10',
-        'changes': [
-          AppLocalizations.of(context).translate('add_calendar_sync'),
-          AppLocalizations.of(context).translate('enhance_statistics'),
-          AppLocalizations.of(context).translate('improve_performance'),
-          AppLocalizations.of(context).translate('fix_known_issues'),
-        ],
-      },
-    ];
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppLocalizations.of(context).translate('version_history'),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...versionHistory.map((version) => _buildVersionItem(version)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVersionItem(Map<String, dynamic> version) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '${AppLocalizations.of(context).translate('version')} ${version['version']}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                version['date'],
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodySmall?.color,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...List.generate(
-            (version['changes'] as List).length,
-            (index) => Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('• '),
-                  Expanded(
-                    child: Text(version['changes'][index]),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LegalDocumentPage(
+                    documentType: LegalDocumentType.userAgreement,
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -373,7 +301,8 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
             ),
             const SizedBox(height: 16),
             Text(
-              AppLocalizations.of(context).translate('development_team_signature'),
+              AppLocalizations.of(context)
+                  .translate('development_team_signature'),
               style: const TextStyle(fontStyle: FontStyle.italic),
             ),
           ],
@@ -387,28 +316,17 @@ class _AboutPageState extends State<AboutPage> with SingleTickerProviderStateMix
       scheme: 'mailto',
       path: email,
     );
-    
+
     if (await canLaunchUrl(emailUri)) {
       await launchUrl(emailUri);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('email_open_fail'))),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context).translate('email_open_fail'))),
         );
       }
     }
   }
-
-  Future<void> _launchUrl(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('url_open_fail'))),
-        );
-      }
-    }
-  }
-} 
+}

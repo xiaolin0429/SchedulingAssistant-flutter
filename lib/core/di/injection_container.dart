@@ -16,11 +16,16 @@ import '../../domain/services/settings_service.dart';
 import '../../domain/services/backup_service.dart';
 import '../../domain/services/alarm_service.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/utils/logger.dart';
 import '../../presentation/blocs/backup/backup_bloc.dart';
 
 final getIt = GetIt.instance;
 
 Future<void> initDependencies() async {
+  // 日志服务
+  final logService = LogService();
+  getIt.registerSingleton<LogService>(logService);
+
   // 初始化SharedPreferences
   final prefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(prefs);

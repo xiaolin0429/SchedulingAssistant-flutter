@@ -5,6 +5,7 @@ import '../../presentation/blocs/statistics/statistics_bloc.dart';
 import '../../presentation/blocs/statistics/statistics_event.dart';
 // import '../../presentation/blocs/alarm/alarm_bloc.dart'; // 注释掉闹钟相关导入
 import '../../core/localization/app_text.dart';
+import '../../core/utils/logger.dart';
 import 'home/home_page.dart';
 import 'shift_types/shift_types_page.dart';
 // import 'alarm/alarm_page.dart'; // 注释掉闹钟页面导入
@@ -40,6 +41,30 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    // 记录应用启动后的首页访问
+    final logger = di.getIt<LogService>();
+    logger.logPageVisit('主屏幕');
+    logger.logAppState('应用前台运行', details: '应用进入前台状态');
+  }
+
+  void _onDestinationSelected(int index) {
+    // 不要在相同页面重复导航
+    if (_currentIndex == index) return;
+
+    // 记录页面切换
+    final pageNames = ['主页', '班次', '统计', '我的'];
+    final logger = di.getIt<LogService>();
+    logger.logPageVisit(pageNames[index]);
+
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
@@ -48,11 +73,7 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: _onDestinationSelected,
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),

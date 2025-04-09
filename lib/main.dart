@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'core/di/injection_container.dart' as di;
 import 'core/notifications/notification_service.dart';
+import 'core/utils/logger.dart';
 import 'presentation/blocs/home/home_bloc.dart';
 import 'presentation/blocs/home/home_event.dart';
 import 'presentation/blocs/shift/shift_bloc.dart';
@@ -24,6 +25,11 @@ void main() async {
   // 确保Flutter绑定已初始化
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 初始化日志服务
+  final logger = LogService();
+  await logger.initialize();
+  logger.i('应用启动', tag: 'APP');
+
   // 获取设备信息
   final deviceInfo = DeviceInfoPlugin();
   String? osName;
@@ -34,41 +40,50 @@ void main() async {
       final androidInfo = await deviceInfo.androidInfo;
       osName = 'Android';
       osVersion = androidInfo.version.release;
-      debugPrint('运行在 Android $osVersion，SDK ${androidInfo.version.sdkInt}');
+      logger.i('运行在 Android $osVersion，SDK ${androidInfo.version.sdkInt}',
+          tag: 'DEVICE');
     } else if (Platform.isIOS) {
       final iosInfo = await deviceInfo.iosInfo;
       osName = 'iOS';
       osVersion = iosInfo.systemVersion;
-      debugPrint('运行在 iOS $osVersion');
+      logger.i('运行在 iOS $osVersion', tag: 'DEVICE');
     } else if (Platform.isWindows) {
       final windowsInfo = await deviceInfo.windowsInfo;
       osName = 'Windows';
       osVersion = windowsInfo.displayVersion;
-      debugPrint('运行在 Windows $osVersion');
+      logger.i('运行在 Windows $osVersion', tag: 'DEVICE');
     } else if (Platform.isMacOS) {
       final macOsInfo = await deviceInfo.macOsInfo;
       osName = 'macOS';
       osVersion = macOsInfo.osRelease;
-      debugPrint('运行在 macOS $osVersion');
+      logger.i('运行在 macOS $osVersion', tag: 'DEVICE');
     } else if (Platform.isLinux) {
       final linuxInfo = await deviceInfo.linuxInfo;
       osName = 'Linux';
       osVersion = linuxInfo.versionId;
-      debugPrint('运行在 Linux $osVersion');
+      logger.i('运行在 Linux $osVersion', tag: 'DEVICE');
     }
   } catch (e) {
-    debugPrint('获取设备信息时出错: $e');
+    logger.e('获取设备信息时出错', tag: 'DEVICE', error: e);
   }
 
   // 初始化依赖注入
+  logger.i('开始初始化依赖注入', tag: 'DI');
   await di.initDependencies();
+  logger.i('依赖注入初始化完成', tag: 'DI');
+
+  // 获取依赖注入容器中的LogService实例
+  final logService = di.getIt<LogService>();
 
   // 确保通知服务已初始化
+  logService.i('开始初始化通知服务', tag: 'NOTIFICATION');
   final notificationService = di.getIt<NotificationService>();
   await notificationService.initialize(); // 如果已初始化，该方法会自动返回
+  logService.i('通知服务初始化完成', tag: 'NOTIFICATION');
 
   // 设置闹钟功能禁用标志
   notificationService.setAlarmFeaturesEnabled(false);
+  logService.i('闹钟功能已禁用', tag: 'NOTIFICATION');
 
   // 为iOS增强闹钟通知功能 - 暂时注释掉闹钟相关代码
   /*
@@ -110,7 +125,10 @@ void main() async {
   // 取消所有已设置的闹钟通知
   await notificationService.cancelAllNotifications();
 
+  // 启动应用程序
+  logService.i('准备启动应用程序UI', tag: 'APP');
   runApp(MyApp(osName: osName, osVersion: osVersion));
+  logService.i('应用程序UI已启动', tag: 'APP');
 }
 
 class MyApp extends StatefulWidget {
@@ -123,7 +141,50 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // 记录应用创建
+    final logger = di.getIt<LogService>();
+    logger.logAppState('应用初始化完成', details: '应用程序UI初始化完成');
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final logger = di.getIt<LogService>();
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        logger.logAppState('应用恢复', details: '应用从后台恢复到前台');
+        break;
+      case AppLifecycleState.inactive:
+        logger.logAppState('应用不活跃', details: '应用处于不活跃状态');
+        break;
+      case AppLifecycleState.paused:
+        logger.logAppState('应用暂停', details: '应用进入后台');
+        // 确保日志缓冲区被刷新到文件
+        logger.flushLogs();
+        break;
+      case AppLifecycleState.detached:
+        logger.logAppState('应用分离', details: '应用与视图分离');
+        // 确保日志缓冲区被刷新到文件
+        logger.flushLogs();
+        break;
+      default:
+        logger.logAppState('应用状态变化', details: '状态：$state');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(

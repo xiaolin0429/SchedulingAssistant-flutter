@@ -6,6 +6,7 @@ import '../../data/models/shift_type.dart';
 import '../../data/repositories/shift_repository.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/utils/logger.dart';
 import '../blocs/home/home_bloc.dart';
 import '../blocs/home/home_event.dart';
 
@@ -49,6 +50,10 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
     );
     _selectedDays.add(initialDate);
     debugPrint('初始化日期: $initialDate');
+
+    // 记录批量排班对话框打开
+    final logger = getIt<LogService>();
+    logger.logPageVisit('批量排班对话框');
   }
 
   @override
@@ -189,9 +194,17 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
       if (_selectedDays.contains(normalizedDay)) {
         debugPrint('取消选中日期: $normalizedDay');
         _selectedDays.remove(normalizedDay);
+
+        // 记录用户取消选择日期操作
+        final logger = getIt<LogService>();
+        logger.logUserAction('取消选择日期', data: {'date': normalizedDay});
       } else {
         debugPrint('选中日期: $normalizedDay');
         _selectedDays.add(normalizedDay);
+
+        // 记录用户选择日期操作
+        final logger = getIt<LogService>();
+        logger.logUserAction('选择日期', data: {'date': normalizedDay});
       }
 
       debugPrint('当前选中日期数: ${_selectedDays.length}');
@@ -228,6 +241,13 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
         _isLoading = false;
       });
 
+      // 记录冲突检查结果
+      final logger = getIt<LogService>();
+      logger.logUserAction('检查排班冲突', data: {
+        'selectedDays': _selectedDays.length,
+        'conflictCount': existingDates.length,
+      });
+
       if (existingDates.isNotEmpty) {
         // 如果有已排班的日期，显示确认对话框
         if (!mounted) return;
@@ -235,7 +255,12 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
         final shouldOverwrite =
             await _showOverwriteConfirmDialog(existingDates);
         if (shouldOverwrite) {
+          logger.logUserAction('确认覆盖现有排班', data: {
+            'conflictCount': existingDates.length,
+          });
           _applyBatchScheduling();
+        } else {
+          logger.logUserAction('取消覆盖现有排班');
         }
       } else {
         // 如果没有已排班的日期，直接应用批量排班
@@ -246,6 +271,10 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
         _isLoading = false;
       });
       debugPrint('检查排班冲突时出错: $e');
+
+      // 记录错误
+      final logger = getIt<LogService>();
+      logger.e('检查排班冲突失败', tag: 'BATCH_SCHEDULING', error: e);
 
       if (!mounted) return;
 
@@ -311,6 +340,18 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
     if (_selectedDays.isEmpty) {
       return;
     }
+
+    // 记录批量排班操作
+    final logger = getIt<LogService>();
+    final selectedShiftType = widget.shiftTypes.firstWhere(
+        (type) => type.id == _selectedShiftTypeId,
+        orElse: () => widget.shiftTypes.first);
+
+    logger.logUserAction('应用批量排班', data: {
+      'selectedDaysCount': _selectedDays.length,
+      'shiftTypeId': _selectedShiftTypeId,
+      'shiftTypeName': selectedShiftType.name,
+    });
 
     // 查找选中日期范围内的最早和最晚日期
     final sortedDates = _selectedDays.toList()..sort();

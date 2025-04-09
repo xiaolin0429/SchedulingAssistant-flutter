@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+//import 'package:table_calendar/table_calendar.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../blocs/home/home_bloc.dart';
 import '../../blocs/home/home_event.dart';
@@ -9,9 +10,25 @@ import '../../widgets/shift_calendar.dart';
 import '../../widgets/batch_scheduling_dialog.dart';
 import '../../../data/models/shift.dart';
 import '../../../data/models/shift_type.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/di/injection_container.dart' as di;
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // 记录页面访问
+    final logger = di.getIt<LogService>();
+    logger.logPageVisit('首页');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,13 +188,9 @@ class HomePage extends StatelessWidget {
                                   children: [
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        // 改为直接在UI层处理对话框显示
                                         if (state.todayShift != null) {
-                                          // 先触发事件，表明用户点击了添加备注按钮
-                                          context
-                                              .read<HomeBloc>()
-                                              .add(const ShowNoteDialog());
-                                          // 然后直接在UI层显示对话框
+                                          final logger = di.getIt<LogService>();
+                                          logger.logUserAction('点击添加备注按钮');
                                           _showNoteDialog(
                                               context, state.todayShift!);
                                         } else {
@@ -208,6 +221,8 @@ class HomePage extends StatelessWidget {
                                     ElevatedButton.icon(
                                       onPressed: () {
                                         if (state.availableShiftTypes != null) {
+                                          final logger = di.getIt<LogService>();
+                                          logger.logUserAction('点击添加班次按钮');
                                           _showShiftTypeSelectionDialog(
                                             context,
                                             state.availableShiftTypes!,
@@ -226,6 +241,9 @@ class HomePage extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       onPressed: () {
+                                        final logger = di.getIt<LogService>();
+                                        logger.logUserAction('点击批量排班按钮');
+
                                         context
                                             .read<HomeBloc>()
                                             .add(const StartBatchScheduling());
@@ -294,6 +312,13 @@ class HomePage extends StatelessWidget {
     debugPrint('正在打开备注对话框，班次: ${shift.type.name}');
     final controller = TextEditingController(text: shift.note);
 
+    // 记录用户打开备注对话框
+    final logger = di.getIt<LogService>();
+    logger.logUserAction('打开备注对话框', data: {
+      'date': shift.date,
+      'shiftType': shift.type.name,
+    });
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -309,6 +334,10 @@ class HomePage extends StatelessWidget {
           TextButton(
             onPressed: () {
               debugPrint('取消添加备注');
+
+              // 记录用户取消添加备注
+              logger.logUserAction('取消添加备注');
+
               Navigator.pop(context);
             },
             child: Text(AppLocalizations.of(context).translate('cancel')),
@@ -317,6 +346,13 @@ class HomePage extends StatelessWidget {
             onPressed: () {
               final noteText = controller.text;
               debugPrint('保存备注: $noteText');
+
+              // 记录用户保存备注
+              logger.logUserAction('保存备注', data: {
+                'date': shift.date,
+                'noteLength': noteText.length,
+              });
+
               Navigator.pop(context);
 
               // 使用新的事件来保存备注
@@ -341,6 +377,13 @@ class HomePage extends StatelessWidget {
       BuildContext context, List<ShiftType> shiftTypes, DateTime selectedDate) {
     final dateStr =
         '${selectedDate.year}年${selectedDate.month}月${selectedDate.day}日';
+
+    // 记录用户打开班次选择对话框
+    final logger = di.getIt<LogService>();
+    logger.logUserAction('打开班次选择对话框', data: {
+      'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+      'availableTypes': shiftTypes.length,
+    });
 
     showDialog(
       context: context,
@@ -369,6 +412,13 @@ class HomePage extends StatelessWidget {
                         '${type.startTimeOfDay!.format(context)} - ${type.endTimeOfDay!.format(context)}')
                     : null,
                 onTap: () {
+                  // 记录用户选择班次类型
+                  logger.logUserAction('选择班次类型', data: {
+                    'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                    'shiftTypeId': type.id,
+                    'shiftTypeName': type.name,
+                  });
+
                   Navigator.of(context).pop();
                   // 选择班次后，添加更新事件
                   if (context.mounted) {
@@ -391,7 +441,14 @@ class HomePage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              // 记录用户取消选择班次
+              logger.logUserAction('取消选择班次', data: {
+                'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+              });
+
+              Navigator.of(context).pop();
+            },
             child: Text(AppLocalizations.of(context).translate('cancel')),
           ),
         ],
