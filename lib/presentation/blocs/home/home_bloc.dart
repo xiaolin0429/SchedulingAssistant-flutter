@@ -101,6 +101,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         if (event.date.month != currentState.selectedDate.month ||
             event.date.year != currentState.selectedDate.year) {
           debugPrint('月份发生变化，重新加载月度数据');
+
+          // 重要改动：先更新选中日期，并设置加载状态标志，但保留旧数据
+          // 这样可以平滑过渡，避免闪屏
+          emit(currentState.copyWith(
+            selectedDate: event.date,
+            todayShift: selectedShift,
+            isSyncing: true, // 设置同步/加载状态
+          ));
+
+          // 异步加载新月份数据
           final monthlyShifts = await shiftRepository.getShiftsByMonth(
             event.date.year,
             event.date.month,
@@ -114,26 +124,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           debugPrint(
               '月度统计: 总工作天数${stats.totalWorkDays}, 总工作时长${stats.totalWorkHours}小时');
 
+          // 数据加载完成后，更新状态并关闭加载指示器
           emit(currentState.copyWith(
             selectedDate: event.date,
             todayShift: selectedShift,
             monthlyShifts: monthlyShifts,
             monthlyStatistics: stats,
+            isSyncing: false, // 关闭加载状态
           ));
           debugPrint('状态已更新(跨月)');
         } else {
           debugPrint('同月份内选择日期');
-          // 即使在同一个月份内，也要更新选中日期的班次信息
-          final monthlyShifts = await shiftRepository.getShiftsByMonth(
-            event.date.year,
-            event.date.month,
-          );
-          debugPrint('本月班次数量: ${monthlyShifts.length}');
-
+          // 同月份内，不需要重新加载整个月的数据，只更新选中日期和对应班次
           final newState = currentState.copyWith(
             selectedDate: event.date,
             todayShift: selectedShift,
-            monthlyShifts: monthlyShifts,
+            // 保留当前月份数据，不重新加载
           );
           if (selectedShift != null) {
             debugPrint('更新后的班次信息: ${selectedShift.type.name}');
@@ -239,29 +245,55 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
         debugPrint('$actionType班次成功，ID: $shiftId');
 
-        // 重新加载月度数据
-        final selectedDate = currentState.selectedDate;
-        final monthlyShifts = await shiftRepository.getShiftsByMonth(
-          selectedDate.year,
-          selectedDate.month,
-        );
-
         // 获取更新后的今日班次
         final updatedTodayShift = await shiftRepository.getShiftByDate(date);
-        debugPrint('更新后的班次信息: ${updatedTodayShift?.type.name ?? '无班次'}');
 
-        // 重新计算统计数据
-        final stats = await _calculateMonthlyStatistics(
-          selectedDate.year,
-          selectedDate.month,
-        );
+        // 智能更新月度数据：只更新/添加当前修改的班次，而不是重新加载整个月
+        List<Shift> updatedMonthlyShifts =
+            List.from(currentState.monthlyShifts);
 
-        emit(currentState.copyWith(
-          todayShift: updatedTodayShift,
-          monthlyShifts: monthlyShifts,
-          monthlyStatistics: stats,
-          isSyncing: false,
-        ));
+        // 检查班次是否在当前显示的月份内
+        bool isInCurrentMonth = date.year == currentState.selectedDate.year &&
+            date.month == currentState.selectedDate.month;
+
+        if (isInCurrentMonth) {
+          if (updatedTodayShift != null) {
+            // 查找并更新/添加班次
+            int existingIndex = updatedMonthlyShifts
+                .indexWhere((shift) => shift.date == updatedTodayShift.date);
+
+            if (existingIndex >= 0) {
+              // 更新现有班次
+              updatedMonthlyShifts[existingIndex] = updatedTodayShift;
+            } else {
+              // 添加新班次
+              updatedMonthlyShifts.add(updatedTodayShift);
+            }
+          } else if (existingShift != null) {
+            // 移除被删除的班次
+            updatedMonthlyShifts
+                .removeWhere((shift) => shift.date == existingShift.date);
+          }
+
+          // 重新计算统计数据 (目前无法避免这一步，因为统计数据可能因一个班次而改变)
+          final stats = await _calculateMonthlyStatistics(
+            currentState.selectedDate.year,
+            currentState.selectedDate.month,
+          );
+
+          emit(currentState.copyWith(
+            todayShift: updatedTodayShift,
+            monthlyShifts: updatedMonthlyShifts,
+            monthlyStatistics: stats,
+            isSyncing: false,
+          ));
+        } else {
+          // 如果修改的是非当前月份的班次，只更新 todayShift
+          emit(currentState.copyWith(
+            todayShift: updatedTodayShift,
+            isSyncing: false,
+          ));
+        }
       } catch (e) {
         debugPrint('更新班次时发生错误: $e');
         final logger = di.getIt<LogService>();
@@ -293,44 +325,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   /// 计算月度统计信息
   Future<MonthlyStatistics> _calculateMonthlyStatistics(
       int year, int month) async {
-    final shifts = await shiftRepository.getShiftsByMonth(year, month);
-
-    // 使用Map统计各类型班次数量
-    final Map<int, int> typeCounts = {};
-    int totalWorkHours = 0;
-
-    for (final shift in shifts) {
-      try {
-        if (shift.type.id == null) continue;
-
-        // 统计班次类型数量
-        typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
-
-        // 统计工作时长
-        if (!shift.type.isRestDay && shift.duration != null) {
-          totalWorkHours += shift.duration!.toInt();
-        }
-      } catch (e) {
-        debugPrint('统计班次时出错（可能是已删除的班次类型）: ${shift.type.id}');
-        // 对于已删除的班次类型，仍然计入统计，但使用特殊的ID（-1）标记
-        typeCounts[-1] = (typeCounts[-1] ?? 0) + 1;
-      }
-    }
-
-    // 计算总工作天数（不包括休息日）
-    final totalWorkDays = shifts.where((s) {
-      try {
-        return !s.type.isRestDay;
-      } catch (e) {
-        return true; // 对于已删除的班次类型，默认计入工作天数
-      }
-    }).length;
-
-    return MonthlyStatistics(
-      shiftTypeCounts: typeCounts,
-      totalWorkDays: totalWorkDays,
-      totalWorkHours: totalWorkHours,
-    );
+    // 直接使用仓库层的方法，避免重复实现统计逻辑
+    return await shiftRepository.getMonthlyStatistics(year, month);
   }
 
   /// 刷新主页数据
@@ -469,23 +465,57 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
       try {
+        // 添加或更新班次
         await shiftRepository.upsertShift(event.shift);
 
-        // 重新加载数据以保持一致性
-        final monthlyShifts = await shiftRepository.getShiftsByMonth(
-          currentState.selectedDate.year,
-          currentState.selectedDate.month,
-        );
+        // 解析班次日期
+        final date = DateTime.parse(event.shift.date);
 
-        final stats = await _calculateMonthlyStatistics(
-          currentState.selectedDate.year,
-          currentState.selectedDate.month,
-        );
+        // 检查班次是否在当前显示的月份内
+        bool isInCurrentMonth = date.year == currentState.selectedDate.year &&
+            date.month == currentState.selectedDate.month;
 
-        emit(currentState.copyWith(
-          monthlyShifts: monthlyShifts,
-          monthlyStatistics: stats,
-        ));
+        if (isInCurrentMonth) {
+          // 获取更新后的班次数据
+          final updatedShift = await shiftRepository.getShiftByDate(date);
+
+          // 智能更新月度数据，只更新/添加修改的班次
+          List<Shift> updatedMonthlyShifts =
+              List.from(currentState.monthlyShifts);
+
+          if (updatedShift != null) {
+            // 查找并更新班次
+            int existingIndex = updatedMonthlyShifts
+                .indexWhere((shift) => shift.date == updatedShift.date);
+
+            if (existingIndex >= 0) {
+              // 更新现有班次
+              updatedMonthlyShifts[existingIndex] = updatedShift;
+            } else {
+              // 添加新班次
+              updatedMonthlyShifts.add(updatedShift);
+            }
+          }
+
+          // 更新统计数据
+          final stats = await _calculateMonthlyStatistics(
+            currentState.selectedDate.year,
+            currentState.selectedDate.month,
+          );
+
+          // 更新状态
+          emit(currentState.copyWith(
+            monthlyShifts: updatedMonthlyShifts,
+            monthlyStatistics: stats,
+            // 如果当前选中的日期就是修改的日期，同时更新todayShift
+            todayShift: currentState.selectedDate.year == date.year &&
+                    currentState.selectedDate.month == date.month &&
+                    currentState.selectedDate.day == date.day
+                ? updatedShift
+                : currentState.todayShift,
+          ));
+        }
+        // 如果不在当前月份，不需要更新UI状态，因为不会影响当前视图
       } catch (e) {
         emit(HomeError(e.toString()));
       }

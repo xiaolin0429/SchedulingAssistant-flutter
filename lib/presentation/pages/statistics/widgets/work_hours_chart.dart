@@ -204,9 +204,9 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
         axisSide: meta.axisSide,
         child: Text(
           '${date.day}',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: Colors.grey,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       );
@@ -222,9 +222,9 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
       axisSide: meta.axisSide,
       child: Text(
         value.toInt().toString(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 10,
-          color: Colors.grey,
+          color: Theme.of(context).textTheme.bodyMedium?.color,
         ),
       ),
     );
@@ -239,7 +239,9 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
       (index) {
         final entry = sortedEntries[index];
         final isTouched = index == _touchedBarIndex;
-        final barColor = isTouched ? Colors.blue.shade300 : Colors.blue;
+        final barColor = isTouched
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+            : Theme.of(context).colorScheme.primary;
 
         return BarChartGroupData(
           x: index,
@@ -264,10 +266,10 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(height: 4),
@@ -275,7 +277,7 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],

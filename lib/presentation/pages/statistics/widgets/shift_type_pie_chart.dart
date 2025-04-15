@@ -29,9 +29,10 @@ class _ShiftTypePieChartState extends State<ShiftTypePieChart> {
           children: [
             Text(
               AppLocalizations.of(context).translate('shift_type_distribution'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             const SizedBox(height: 16),
@@ -90,10 +91,12 @@ class _ShiftTypePieChartState extends State<ShiftTypePieChart> {
           value: entry.value.toDouble(),
           title: '$percentage%',
           radius: radius,
-          titleStyle: const TextStyle(
+          titleStyle: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
           ),
           badgeWidget: isTouched
               ? _Badge(
@@ -125,20 +128,25 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return AnimatedContainer(
       duration: PieChart.defaultDuration,
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:
+            isDarkMode ? Theme.of(context).colorScheme.surface : Colors.white,
         shape: BoxShape.circle,
         border: Border.all(
           color: borderColor,
           width: 2,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromARGB(128, 0, 0, 0),
+            color: isDarkMode
+                ? const Color.fromRGBO(0, 0, 0, 0.3)
+                : const Color.fromARGB(128, 0, 0, 0),
             blurRadius: 10,
             spreadRadius: 2,
           )
