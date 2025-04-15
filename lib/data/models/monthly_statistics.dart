@@ -2,10 +2,10 @@
 class MonthlyStatistics {
   /// 按班次类型统计的天数
   final Map<int, int> shiftTypeCounts;
-  
+
   /// 总工作天数
   final int totalWorkDays;
-  
+
   /// 总工作时长（小时）
   final int totalWorkHours;
 
@@ -48,4 +48,4 @@ class MonthlyStatistics {
 
   /// 获取指定班次类型的天数
   int getTypeCount(int typeId) => shiftTypeCounts[typeId] ?? 0;
-} 
+}

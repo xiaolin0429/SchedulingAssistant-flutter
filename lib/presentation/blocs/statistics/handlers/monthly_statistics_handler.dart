@@ -23,8 +23,6 @@ class MonthlyStatisticsHandler {
     LoadMonthlyStatistics event,
     Emitter<StatisticsState> emit,
   ) async {
-    emit(StatisticsLoading());
-
     try {
       // 获取所有班次类型
       final shiftTypes = await _shiftTypeRepository.getAll();

@@ -43,7 +43,8 @@ class ShiftDao extends BaseDao<Shift> {
   }
 
   /// 获取日期范围内的班次
-  Future<List<Shift>> getShiftsByDateRange(String startDate, String endDate) async {
+  Future<List<Shift>> getShiftsByDateRange(
+      String startDate, String endDate) async {
     final List<Map<String, dynamic>> maps = await query(
       where: 'date BETWEEN ? AND ?',
       whereArgs: [startDate, endDate],
@@ -96,6 +97,51 @@ class ShiftDao extends BaseDao<Shift> {
     return await Shift.fromMap(maps.first);
   }
 
+  /// 获取月度统计数据
+  /// 直接在数据库层面计算班次类型分布和工作天数
+  Future<Map<String, dynamic>> getMonthlyStatisticsData(
+      int year, int month) async {
+    // 构建日期范围
+    final startDate = '$year-${month.toString().padLeft(2, '0')}-01';
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final endDate =
+        '$year-${month.toString().padLeft(2, '0')}-${lastDay.toString().padLeft(2, '0')}';
+
+    // 1. 按班次类型计数查询
+    final typeCounts = await database.rawQuery('''
+      SELECT shiftTypeId, COUNT(*) as count 
+      FROM shifts 
+      WHERE date BETWEEN ? AND ? 
+      GROUP BY shiftTypeId
+    ''', [startDate, endDate]);
+
+    // 2. 工作时长查询（仅计算有开始和结束时间的班次）
+    // 注意：数据库无法直接处理跨天时长计算，所以这里只统计具体记录的数量，详细计算仍在应用层
+    final workShiftsCount = await database.rawQuery('''
+      SELECT COUNT(*) as count 
+      FROM shifts s
+      JOIN shift_types st ON s.shiftTypeId = st.id
+      WHERE date BETWEEN ? AND ? 
+      AND st.isRestDay = 0
+    ''', [startDate, endDate]);
+
+    // 将结果转换为统一的格式
+    final Map<int, int> shiftTypeCounts = {};
+    for (var row in typeCounts) {
+      final typeId = row['shiftTypeId'] as int;
+      final count = row['count'] as int;
+      shiftTypeCounts[typeId] = count;
+    }
+
+    // 工作天数为非休息日的班次数量
+    final totalWorkDays = Sqflite.firstIntValue(workShiftsCount) ?? 0;
+
+    return {
+      'shiftTypeCounts': shiftTypeCounts,
+      'totalWorkDays': totalWorkDays,
+    };
+  }
+
   /// 插入班次
   Future<int> insertShift(Shift shift) async {
     return await insert(shift.toMap());
@@ -123,7 +169,7 @@ class ShiftDao extends BaseDao<Shift> {
   /// 批量插入或更新班次
   Future<void> upsertShifts(List<Shift> shifts) async {
     final batch = database.batch();
-    
+
     for (final shift in shifts) {
       if (shift.id != null) {
         batch.update(
@@ -161,4 +207,4 @@ class ShiftDao extends BaseDao<Shift> {
   Future<int> deleteShiftByDate(String date) async {
     return await delete('date = ?', [date]);
   }
-} 
+}
