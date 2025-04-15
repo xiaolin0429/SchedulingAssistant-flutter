@@ -21,6 +21,7 @@ class WorkHoursChart extends StatefulWidget {
 
 class _WorkHoursChartState extends State<WorkHoursChart> {
   int _touchedBarIndex = -1;
+  bool _isTooltipVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +75,8 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                             barTouchData: BarTouchData(
                               enabled: true,
                               touchTooltipData: BarTouchTooltipData(
+                                fitInsideHorizontally: true,
+                                fitInsideVertically: true,
                                 tooltipBgColor:
                                     const Color.fromARGB(230, 0, 0, 0),
                                 tooltipPadding: const EdgeInsets.symmetric(
@@ -85,6 +88,11 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                                 direction: TooltipDirection.top,
                                 getTooltipItem:
                                     (group, groupIndex, rod, rodIndex) {
+                                  if (groupIndex != _touchedBarIndex &&
+                                      !_isTooltipVisible) {
+                                    return null;
+                                  }
+
                                   final date = widget.dailyWorkHours.keys
                                       .elementAt(group.x.toInt());
                                   final hours = widget.dailyWorkHours[date];
@@ -114,32 +122,41 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
                                     ],
                                   );
                                 },
-                                fitInsideHorizontally: true,
-                                fitInsideVertically: true,
                               ),
                               touchCallback: (FlTouchEvent event,
                                   BarTouchResponse? touchResponse) {
-                                // 添加触摸回调以增强交互性
+                                // 修改触摸回调以增强交互性
                                 setState(() {
-                                  if (event is FlPanEndEvent ||
-                                      event is FlTapUpEvent) {
-                                    // 手指抬起时，保持高亮状态
+                                  if (event is FlTapUpEvent) {
+                                    // 点击抬起时，切换高亮状态
+                                    if (touchResponse != null &&
+                                        touchResponse.spot != null) {
+                                      if (_touchedBarIndex ==
+                                          touchResponse
+                                              .spot!.touchedBarGroupIndex) {
+                                        // 如果点击的是当前已高亮的柱子，则取消高亮
+                                        _touchedBarIndex = -1;
+                                        _isTooltipVisible = false;
+                                      } else {
+                                        // 否则高亮点击的柱子
+                                        _touchedBarIndex = touchResponse
+                                            .spot!.touchedBarGroupIndex;
+                                        _isTooltipVisible = true;
+                                      }
+                                    } else {
+                                      // 点击空白区域，取消高亮
+                                      _touchedBarIndex = -1;
+                                      _isTooltipVisible = false;
+                                    }
+                                  } else if (event is FlPanStartEvent ||
+                                      event is FlLongPressStart) {
+                                    // 长按或拖动开始时，设置高亮
                                     if (touchResponse != null &&
                                         touchResponse.spot != null) {
                                       _touchedBarIndex = touchResponse
                                           .spot!.touchedBarGroupIndex;
+                                      _isTooltipVisible = true;
                                     }
-                                  } else if (event is FlTapDownEvent ||
-                                      event is FlPanDownEvent) {
-                                    // 手指按下时，设置高亮
-                                    if (touchResponse != null &&
-                                        touchResponse.spot != null) {
-                                      _touchedBarIndex = touchResponse
-                                          .spot!.touchedBarGroupIndex;
-                                    }
-                                  } else if (event is FlPointerExitEvent) {
-                                    // 指针离开时，取消高亮
-                                    _touchedBarIndex = -1;
                                   }
                                 });
                               },
@@ -240,8 +257,8 @@ class _WorkHoursChartState extends State<WorkHoursChart> {
         final entry = sortedEntries[index];
         final isTouched = index == _touchedBarIndex;
         final barColor = isTouched
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
-            : Theme.of(context).colorScheme.primary;
+            ? const Color(0xFF3399FF) // 点击状态为深蓝色
+            : const Color(0xFFB3DAFF); // 正常状态为浅蓝色
 
         return BarChartGroupData(
           x: index,
