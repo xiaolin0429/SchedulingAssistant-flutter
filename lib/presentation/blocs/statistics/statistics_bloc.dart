@@ -43,6 +43,20 @@ class StatisticsBloc extends Bloc<StatisticsEvent, StatisticsState> {
     LoadMonthlyStatistics event,
     Emitter<StatisticsState> emit,
   ) async {
+    // 如果当前已经有加载的状态，先保存当前月份相关信息
+    if (state is StatisticsLoaded) {
+      final currentState = state as StatisticsLoaded;
+
+      // 先更新选中月份，保持其他数据，避免闪屏
+      emit(currentState.copyWith(
+        selectedMonth: DateTime(event.year, event.month),
+      ));
+    } else {
+      // 第一次加载时显示加载状态
+      emit(StatisticsLoading());
+    }
+
+    // 进行实际数据加载
     final result = await _monthlyStatisticsHandler.handle(event, emit);
     emit(result);
   }

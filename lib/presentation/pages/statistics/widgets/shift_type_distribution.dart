@@ -23,14 +23,16 @@ class ShiftTypeDistribution extends StatelessWidget {
           children: [
             Text(
               AppLocalizations.of(context).translate('shift_type_distribution'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             const SizedBox(height: 16),
             ...shiftTypePercentages.entries.map(
               (entry) => _buildDistributionItem(
+                context,
                 entry.key.name,
                 '${shiftTypeCountMap[entry.key] ?? 0}（${entry.value.toStringAsFixed(1)}%）',
                 entry.key.colorValue,
@@ -46,7 +48,8 @@ class ShiftTypeDistribution extends StatelessWidget {
     );
   }
 
-  Widget _buildDistributionItem(String label, String value, Color color) {
+  Widget _buildDistributionItem(
+      BuildContext context, String label, String value, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -60,13 +63,20 @@ class ShiftTypeDistribution extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+          ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
             ),
           ),
         ],

@@ -90,44 +90,61 @@ class ShiftRepository implements BaseRepository<Shift> {
 
   /// 获取月度统计数据
   Future<MonthlyStatistics> getMonthlyStatistics(int year, int month) async {
-    final shifts = await getShiftsByMonth(year, month);
+    try {
+      // 使用数据库层的统计功能直接获取统计结果
+      final statsData = await _shiftDao.getMonthlyStatisticsData(year, month);
 
-    // 按班次类型ID统计天数
-    final Map<int, int> typeCounts = {};
-    int totalWorkHours = 0;
+      // 从数据库获取类型计数和工作天数
+      final Map<int, int> typeCounts =
+          Map<int, int>.from(statsData['shiftTypeCounts']);
+      final int totalWorkDays = statsData['totalWorkDays'] as int;
 
-    for (final shift in shifts) {
-      try {
-        if (shift.type.id == null) continue;
+      // 对于工作时长，由于涉及复杂的跨天计算，仍需要获取班次数据进行计算
+      final shifts = await getShiftsByMonth(year, month);
+      int totalWorkHours = 0;
 
-        // 统计班次类型天数
-        typeCounts[shift.type.id!] = (typeCounts[shift.type.id!] ?? 0) + 1;
+      // 扫描一遍班次数据，检查是否有已删除的班次类型
+      int deletedTypeCount = 0;
 
-        // 统计工作时长
-        if (!shift.type.isRestDay && shift.duration != null) {
-          totalWorkHours += shift.duration!.toInt();
+      // 仅计算非休息日且有时间信息的班次
+      for (final shift in shifts) {
+        try {
+          if (shift.type.id == null || shift.type.id == -1) {
+            // 已删除的班次类型
+            deletedTypeCount++;
+            continue;
+          }
+
+          if (!shift.type.isRestDay && shift.duration != null) {
+            totalWorkHours += shift.duration!.toInt();
+          }
+        } catch (e) {
+          debugPrint('统计班次时出错（可能是已删除的班次类型）: $e');
+          // 对于已删除的班次类型，记录计数
+          deletedTypeCount++;
         }
-      } catch (e) {
-        debugPrint('统计班次时出错（可能是已删除的班次类型）');
-        // 对于已删除的班次类型，仍然计入统计，但使用特殊的ID（-1）标记
-        typeCounts[-1] = (typeCounts[-1] ?? 0) + 1;
       }
+
+      // 如果有已删除的班次类型，添加到统计中，使用特殊ID (-1)
+      if (deletedTypeCount > 0) {
+        typeCounts[-1] = deletedTypeCount;
+      }
+
+      return MonthlyStatistics(
+        shiftTypeCounts: typeCounts,
+        totalWorkDays: totalWorkDays,
+        totalWorkHours: totalWorkHours,
+      );
+    } catch (e) {
+      debugPrint('获取月度统计数据失败: $e');
+      _logger.e('获取月度统计数据失败', tag: 'SHIFT_REPO', error: e);
+      // 出错时返回空统计
+      return const MonthlyStatistics(
+        shiftTypeCounts: {},
+        totalWorkDays: 0,
+        totalWorkHours: 0,
+      );
     }
-
-    // 计算总工作天数（不包括休息日）
-    final totalWorkDays = shifts.where((s) {
-      try {
-        return !s.type.isRestDay;
-      } catch (e) {
-        return true; // 对于已删除的班次类型，默认计入工作天数
-      }
-    }).length;
-
-    return MonthlyStatistics(
-      shiftTypeCounts: typeCounts,
-      totalWorkDays: totalWorkDays,
-      totalWorkHours: totalWorkHours,
-    );
   }
 
   /// 获取下一个班次

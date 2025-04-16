@@ -15,6 +15,7 @@ import 'statistics_injection.dart';
 import '../../domain/services/settings_service.dart';
 import '../../domain/services/backup_service.dart';
 import '../../domain/services/alarm_service.dart';
+import '../../domain/services/user_profile_service.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/utils/logger.dart';
 import '../../presentation/blocs/backup/backup_bloc.dart';
@@ -106,6 +107,11 @@ Future<void> initDependencies() async {
         AlarmService(getIt<AlarmRepository>(), getIt<NotificationService>());
     return service;
   });
+
+  // 注册用户资料服务
+  getIt.registerLazySingleton<UserProfileService>(
+    () => UserProfileService(getIt<SharedPreferences>()),
+  );
 
   // Blocs
   getIt.registerFactory<BackupBloc>(() => BackupBloc(getIt()));

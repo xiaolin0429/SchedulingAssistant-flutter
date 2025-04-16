@@ -151,14 +151,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   AppLocalizations.of(context)
                       .translate('monthly_total_shifts'),
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     fontSize: 16,
                   ),
                 ),
                 Text(
                   '${state.totalShifts}',
-                  style: const TextStyle(
-                    color: Colors.black,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
