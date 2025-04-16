@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../../core/di/injection_container.dart';
+import '../../../domain/services/user_profile_service.dart';
+import '../../../data/models/user_profile.dart';
 
 class UserProfileEditPage extends StatefulWidget {
   const UserProfileEditPage({super.key});
@@ -15,14 +18,19 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
   final _bioController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+
+  // 用户资料服务
+  final _profileService = getIt<UserProfileService>();
+
+  // 是否正在保存
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // TODO: 从数据库加载用户信息
     _loadUserProfile();
   }
 
@@ -36,18 +44,31 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
   }
 
   Future<void> _loadUserProfile() async {
-    // TODO: 从数据库加载用户信息
-    // 模拟数据
-    setState(() {
-      _nameController.text = '用户昵称';
-      _bioController.text = '这是一段个人简介';
-      _emailController.text = 'user@example.com';
-      _phoneController.text = '13800138000';
-    });
+    try {
+      final profile = await _profileService.loadUserProfile();
+      setState(() {
+        _nameController.text = profile.nickname ?? '';
+        _bioController.text = profile.bio ?? '';
+        _emailController.text = profile.email ?? '';
+        _phoneController.text = profile.phone ?? '';
+
+        // 如果有头像路径，加载头像
+        if (profile.avatarPath != null && profile.avatarPath!.isNotEmpty) {
+          _imageFile = File(profile.avatarPath!);
+          if (!_imageFile!.existsSync()) {
+            _imageFile = null;
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('加载用户资料失败: $e');
+      // 使用默认空值
+    }
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -57,11 +78,55 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: 保存用户信息到数据库
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('个人信息已保存')),
-      );
-      Navigator.pop(context);
+      // 防止重复点击保存按钮
+      if (_isSaving) return;
+
+      setState(() {
+        _isSaving = true;
+      });
+
+      try {
+        // 创建用户资料对象
+        final profile = UserProfile(
+          nickname: _nameController.text,
+          bio: _bioController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          avatarPath: _imageFile?.path,
+        );
+
+        // 保存到服务
+        final success = await _profileService.saveUserProfile(profile);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success ? '个人信息已保存' : '保存失败，请重试'),
+              backgroundColor: success ? null : Colors.red,
+            ),
+          );
+
+          if (success) {
+            Navigator.pop(context);
+          }
+        }
+      } catch (e) {
+        debugPrint('保存用户资料失败: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('保存失败: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+      }
     }
   }
 
@@ -72,8 +137,13 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
         title: const Text('编辑个人信息'),
         actions: [
           TextButton(
-            onPressed: _saveProfile,
-            child: const Text('保存'),
+            onPressed: _isSaving ? null : _saveProfile,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('保存'),
           ),
         ],
       ),
@@ -90,7 +160,8 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+                      backgroundImage:
+                          _imageFile != null ? FileImage(_imageFile!) : null,
                       child: _imageFile == null
                           ? const Icon(
                               Icons.person,
@@ -121,7 +192,7 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // 昵称
               TextFormField(
                 controller: _nameController,
@@ -138,7 +209,7 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // 个人简介
               TextFormField(
                 controller: _bioController,
@@ -150,7 +221,7 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
-              
+
               // 邮箱
               TextFormField(
                 controller: _emailController,
@@ -163,7 +234,8 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
                     // 简单的邮箱格式验证
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return '请输入有效的邮箱地址';
                     }
                   }
@@ -171,7 +243,7 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // 手机号
               TextFormField(
                 controller: _phoneController,
@@ -197,4 +269,4 @@ class _UserProfileEditPageState extends State<UserProfileEditPage> {
       ),
     );
   }
-} 
+}
