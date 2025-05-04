@@ -20,6 +20,7 @@ import 'core/localization/app_localizations.dart';
 import 'core/themes/app_theme.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'data/repositories/settings_repository.dart';
+import 'presentation/pages/profile/settings_page.dart';
 
 void main() async {
   // 确保Flutter绑定已初始化
@@ -260,6 +261,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 return const Locale('zh', 'CN');
               },
               home: const MainScreen(),
+              // 添加命名路由表
+              routes: {
+                '/settings': (context) => const SettingsPage(),
+              },
+              // 添加onGenerateRoute处理未定义的路由
+              onGenerateRoute: (settings) {
+                debugPrint('未找到路由：${settings.name}');
+                return MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(
+                      title: const Text('页面未找到'),
+                    ),
+                    body: Center(
+                      child: Text('未找到路由: ${settings.name}'),
+                    ),
+                  ),
+                );
+              },
             );
           }
           return const MaterialApp(
