@@ -172,6 +172,7 @@ class ShiftDao extends BaseDao<Shift> {
 
     for (final shift in shifts) {
       if (shift.id != null) {
+        // 如果有ID，直接更新
         batch.update(
           tableName,
           shift.toMap(),
@@ -179,7 +180,24 @@ class ShiftDao extends BaseDao<Shift> {
           whereArgs: [shift.id],
         );
       } else {
-        batch.insert(tableName, shift.toMap());
+        // 如果没有ID，先检查是否存在相同日期的记录
+        final Map<String, dynamic> shiftMap = shift.toMap();
+
+        // 使用 SQL 的 INSERT OR REPLACE INTO 语法
+        // 这会根据唯一约束（date字段）自动判断是插入还是替换
+        batch.rawInsert(
+          'INSERT OR REPLACE INTO $tableName (date, type, shiftTypeId, startTime, endTime, note, noteUpdatedAt, updateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            shiftMap['date'],
+            shiftMap['type'],
+            shiftMap['shiftTypeId'],
+            shiftMap['startTime'],
+            shiftMap['endTime'],
+            shiftMap['note'],
+            shiftMap['noteUpdatedAt'],
+            shiftMap['updateTime'],
+          ],
+        );
       }
     }
 
