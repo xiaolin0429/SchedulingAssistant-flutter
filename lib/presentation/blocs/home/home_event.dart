@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../data/models/shift.dart';
+import '../../../data/models/shift_type.dart';
 
 abstract class HomeEvent extends Equatable {
   const HomeEvent();
@@ -138,4 +139,14 @@ class ExecuteBatchScheduling extends HomeEvent {
 /// 重置排班选择状态
 class ResetShiftSelection extends HomeEvent {
   const ResetShiftSelection();
+}
+
+/// 更新可用班次类型
+class UpdateAvailableShiftTypes extends HomeEvent {
+  final List<ShiftType> shiftTypes;
+
+  const UpdateAvailableShiftTypes(this.shiftTypes);
+
+  @override
+  List<Object> get props => [shiftTypes];
 }

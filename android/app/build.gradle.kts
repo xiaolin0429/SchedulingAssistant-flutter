@@ -11,6 +11,9 @@ import java.io.FileInputStream
 // 添加签名配置处理逻辑
 val keystorePropertiesFile = rootProject.file("key.properties")
 
+val flutterVersionCode: String? by project
+val flutterVersionName: String? by project
+
 android {
     namespace = "com.schedule.assistant"
     compileSdk = 35
@@ -49,8 +52,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = flutterVersionCode?.toInt() ?: 1
+        versionName = flutterVersionName ?: "1.0"
         signingConfig = signingConfigs.getByName("debug")
     }
 

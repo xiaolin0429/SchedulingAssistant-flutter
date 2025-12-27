@@ -96,10 +96,9 @@ class ShiftCalendar extends StatelessWidget {
             return Center(
               child: Text(
                 headerFormat.format(day),
-                style: const TextStyle(
-                  fontSize: 17.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             );
           },
