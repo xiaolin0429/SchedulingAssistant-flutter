@@ -82,10 +82,8 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: TableCalendar(
-                        firstDay:
-                            DateTime.now().subtract(const Duration(days: 365)),
-                        lastDay:
-                            DateTime.now().add(const Duration(days: 365 * 2)),
+                        firstDay: DateTime.utc(DateTime.now().year - 10, 1, 1),
+                        lastDay: DateTime.utc(DateTime.now().year + 10, 12, 31),
                         focusedDay: _focusedDay,
                         selectedDayPredicate: (day) {
                           return _selectedDays.contains(_normalizeDate(day));
