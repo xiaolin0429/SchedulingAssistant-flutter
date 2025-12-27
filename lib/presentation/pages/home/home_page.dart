@@ -49,49 +49,49 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               children: [
                 // 顶部标题栏
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    border: const Border(
-                      bottom: BorderSide(
-                        color: Color.fromARGB(51, 158, 158, 158), // 0.2透明度的灰色
-                        width: 1,
-                      ),
-                    ),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        DateFormat(AppLocalizations.of(context)
-                                .translate('date_format_year_month'))
-                            .format(state.selectedDate),
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat(AppLocalizations.of(context)
+                                    .translate('date_format_year_month'))
+                                .format(state.selectedDate),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                          ),
+                          Text(
+                            AppLocalizations.of(context).translate('app_title'),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                        ],
                       ),
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.calendar_today),
-                            onPressed: () {
-                              context
-                                  .read<HomeBloc>()
-                                  .add(const SyncCalendar());
-                            },
+                            icon: const Icon(Icons.calendar_today_outlined),
+                            onPressed: () =>
+                                context.read<HomeBloc>().add(const SyncCalendar()),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.cloud_sync),
-                            onPressed: () {
-                              context.read<HomeBloc>().add(const SyncData());
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.settings),
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/settings');
-                            },
+                            icon: const Icon(Icons.settings_outlined),
+                            onPressed: () => Navigator.pushNamed(context, '/settings'),
                           ),
                         ],
                       ),
@@ -99,18 +99,39 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 // 班次统计
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: state.availableShiftTypes?.map((type) {
+                    children: state.availableShiftTypes?.where((type) {
                           final count = state.monthlyStatistics
                                   ?.getTypeCount(type.id ?? 0) ??
                               0;
-                          return _buildShiftTypeCount(
-                            type.name,
-                            count,
-                            type.colorValue,
+                          return count > 0;
+                        }).map((type) {
+                          final count = state.monthlyStatistics
+                                  ?.getTypeCount(type.id ?? 0) ??
+                              0;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: FilterChip(
+                              label: Text('${type.name} $count'),
+                              onSelected: (_) {},
+                              selected: false,
+                              backgroundColor: type.colorValue.withOpacity(0.1),
+                              labelStyle: TextStyle(
+                                color: type.colorValue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              shape: StadiumBorder(
+                                side: BorderSide(
+                                  color: type.colorValue.withOpacity(0.2),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                              visualDensity: VisualDensity.compact,
+                            ),
                           );
                         }).toList() ??
                         [],
@@ -118,137 +139,230 @@ class _HomePageState extends State<HomePage> {
                 ),
                 // 日历视图
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16.0),
-                    children: [
-                      ShiftCalendar(
-                        selectedDate: state.selectedDate,
-                        shifts: state.monthlyShifts,
-                        onDateSelected: (date) {
-                          // 只更新选中的日期，不触发排班对话框
-                          context.read<HomeBloc>().add(SelectDate(date));
-                        },
-                        enableDaySelection: true,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        children: [
+                          ShiftCalendar(
+                            selectedDate: state.selectedDate,
+                            shifts: state.monthlyShifts,
+                            onDateSelected: (date) {
+                              context.read<HomeBloc>().add(SelectDate(date));
+                            },
+                            enableDaySelection: true,
+                          ),
+                          const SizedBox(height: 80), // 底部留白，防止内容被遮挡
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      // 今日排班卡片
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Center(
-                                child: Text(
+                    ),
+                  ),
+                ),
+                // 今日排班卡片 (固定在底部)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: SafeArea(
+                    top: false,
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      // 移除卡片默认阴影，与底部容器融为一体
+                      elevation: 0,
+                      color: Theme.of(context).cardTheme.color,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        side: BorderSide(
+                          color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min, // 确保高度自适应
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
                                   AppLocalizations.of(context)
                                       .translate('today_shift'),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              if (state.todayShift == null)
-                                Center(
-                                  child: Text(
+                                // 如果有排班，显示简要信息
+                                if (state.todayShift != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: state.todayShift!.type.colorValue
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      state.todayShift!.type.name,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: state.todayShift!.type.colorValue,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            if (state.todayShift == null)
+                              // 无排班状态 - 简化显示
+                              Row(
+                                children: [
+                                  Icon(Icons.event_busy_rounded,
+                                      size: 24,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline
+                                          .withOpacity(0.5)),
+                                  const SizedBox(width: 12),
+                                  Text(
                                     AppLocalizations.of(context)
                                         .translate('no_shift'),
-                                    style: const TextStyle(color: Colors.grey),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
                                   ),
-                                )
-                              else
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '${AppLocalizations.of(context).translate('shift_type_label')} ${state.todayShift!.type.name}',
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    if (state.todayShift!.startTime != null &&
-                                        state.todayShift!.endTime != null)
-                                      Text(
-                                        '${AppLocalizations.of(context).translate('shift_time_label')} ${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    if (state.todayShift!.note?.isNotEmpty ??
-                                        false)
-                                      Text(
-                                        '${AppLocalizations.of(context).translate('note_label')} ${state.todayShift!.note}',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                  ],
-                                ),
-                              const SizedBox(height: 16),
-                              // 按钮行
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        if (state.todayShift != null) {
-                                          final logger = di.getIt<LogService>();
-                                          logger.logUserAction('点击添加备注按钮');
-                                          _showNoteDialog(
-                                              context, state.todayShift!);
-                                        } else {
-                                          // 显示提示信息
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                  AppLocalizations.of(context)
-                                                      .translate(
-                                                          'no_shift_for_note')),
-                                              duration:
-                                                  const Duration(seconds: 2),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      icon:
-                                          const Icon(Icons.note_add, size: 20),
-                                      label: Text(AppLocalizations.of(context)
-                                          .translate('add_note')),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
+                                  const Spacer(),
+                                  FilledButton.icon(
+                                    onPressed: () {
+                                      if (state.availableShiftTypes != null) {
+                                        _showShiftTypeSelectionDialog(
+                                          context,
+                                          state.availableShiftTypes!,
+                                          state.selectedDate,
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.edit_calendar_rounded,
+                                        size: 18),
+                                    label: Text(
+                                        AppLocalizations.of(context)
+                                            .translate('add_shift'),
+                                        style: const TextStyle(fontSize: 13)),
+                                    style: FilledButton.styleFrom(
+                                        visualDensity: VisualDensity.compact),
+                                  ),
+                                ],
+                              )
+                            else
+                              // 有排班状态 - 紧凑显示
+                              Column(
+                                children: [
+                                  if (state.todayShift!.startTime != null &&
+                                      state.todayShift!.endTime != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time_rounded,
+                                            size: 16,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        if (state.availableShiftTypes != null) {
-                                          final logger = di.getIt<LogService>();
-                                          logger.logUserAction('点击添加班次按钮');
-                                          _showShiftTypeSelectionDialog(
-                                            context,
-                                            state.availableShiftTypes!,
-                                            state.selectedDate,
-                                          );
-                                        }
-                                      },
-                                      icon: const Icon(Icons.add, size: 20),
-                                      label: Text(AppLocalizations.of(context)
-                                          .translate('add_shift')),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
+                                  // 按钮行
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: FilledButton.tonalIcon(
+                                          onPressed: () {
+                                            _showNoteDialog(
+                                                context, state.todayShift!);
+                                          },
+                                          icon: const Icon(
+                                              Icons.note_add_outlined,
+                                              size: 18),
+                                          label: Text(
+                                            AppLocalizations.of(context)
+                                                .translate('add_note'),
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                              visualDensity:
+                                                  VisualDensity.compact),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton.icon(
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: FilledButton.icon(
+                                          onPressed: () {
+                                            if (state.availableShiftTypes !=
+                                                null) {
+                                              _showShiftTypeSelectionDialog(
+                                                context,
+                                                state.availableShiftTypes!,
+                                                state.selectedDate,
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(
+                                              Icons.edit_calendar_rounded,
+                                              size: 18),
+                                          label: Text(
+                                            AppLocalizations.of(context)
+                                                .translate('add_shift'),
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                              visualDensity:
+                                                  VisualDensity.compact),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
                                       onPressed: () {
-                                        final logger = di.getIt<LogService>();
-                                        logger.logUserAction('点击批量排班按钮');
-
                                         context
                                             .read<HomeBloc>()
                                             .add(const StartBatchScheduling());
-
-                                        // 显示批量排班对话框
                                         if (state.availableShiftTypes != null) {
                                           showDialog(
                                             context: context,
@@ -261,23 +375,22 @@ class _HomePageState extends State<HomePage> {
                                           );
                                         }
                                       },
-                                      icon: const Icon(Icons.date_range,
-                                          size: 20),
-                                      label: Text(AppLocalizations.of(context)
-                                          .translate('batch_scheduling')),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
-                                      ),
+                                      icon: const Icon(Icons.date_range_rounded,
+                                          size: 18),
+                                      label: Text(
+                                          AppLocalizations.of(context)
+                                              .translate('batch_scheduling'),
+                                          style: const TextStyle(fontSize: 13)),
+                                      style: OutlinedButton.styleFrom(
+                                          visualDensity: VisualDensity.compact),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -287,23 +400,6 @@ class _HomePageState extends State<HomePage> {
 
         return const Center(child: Text('未知状态'));
       },
-    );
-  }
-
-  Widget _buildShiftTypeCount(String type, int count, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text('$type: $count'),
-      ],
     );
   }
 

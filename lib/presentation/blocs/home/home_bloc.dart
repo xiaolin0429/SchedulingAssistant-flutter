@@ -5,6 +5,7 @@ import '../../../data/repositories/shift_type_repository.dart';
 import '../../../data/repositories/calendar_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 import '../../../data/models/monthly_statistics.dart';
+import '../../../data/models/shift_type.dart';
 import '../../../data/models/shift.dart';
 import 'home_event.dart';
 import 'home_state.dart';
@@ -20,6 +21,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final ShiftTypeRepository shiftTypeRepository;
   final SettingsRepository settingsRepository;
   final CalendarRepository calendarRepository;
+  StreamSubscription<List<ShiftType>>? _shiftTypesSubscription;
 
   HomeBloc({
     required this.shiftRepository,
@@ -42,7 +44,35 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<StartBatchScheduling>(_onStartBatchScheduling);
     on<ExecuteBatchScheduling>(_onExecuteBatchScheduling);
     on<ResetShiftSelection>(_onResetShiftSelection);
+    on<UpdateAvailableShiftTypes>(_onUpdateAvailableShiftTypes);
+
+    // 监听班次类型变化
+    _shiftTypesSubscription = shiftTypeRepository.shiftTypesStream.listen(
+      (shiftTypes) {
+        add(UpdateAvailableShiftTypes(shiftTypes));
+      },
+      onError: (error) {
+        debugPrint('监听班次类型更新失败: $error');
+      },
+    );
   }
+
+  // ... (existing methods)
+
+  /// 更新可用班次类型
+  void _onUpdateAvailableShiftTypes(
+    UpdateAvailableShiftTypes event,
+    Emitter<HomeState> emit,
+  ) {
+    if (state is HomeLoaded) {
+      final currentState = state as HomeLoaded;
+      emit(currentState.copyWith(
+        availableShiftTypes: event.shiftTypes,
+      ));
+    }
+  }
+
+
 
   /// 加载主页数据
   Future<void> _onLoadHomeData(
@@ -640,7 +670,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   @override
   Future<void> close() {
-    // 清理资源
+    _shiftTypesSubscription?.cancel();
     return super.close();
   }
 }
