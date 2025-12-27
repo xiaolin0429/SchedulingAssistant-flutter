@@ -25,8 +25,8 @@ class ShiftCalendar extends StatelessWidget {
 
     return Card(
       child: TableCalendar(
-        firstDay: DateTime.utc(2024, 1, 1),
-        lastDay: DateTime.utc(2025, 12, 31),
+        firstDay: DateTime.utc(2020, 1, 1),
+        lastDay: DateTime.utc(DateTime.now().year + 10, 12, 31),
         focusedDay: selectedDate,
         currentDay: DateTime.now(), // 设置今日日期
         selectedDayPredicate: (day) => isSameDay(selectedDate, day),

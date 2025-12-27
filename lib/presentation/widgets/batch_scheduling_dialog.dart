@@ -82,10 +82,8 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: TableCalendar(
-                        firstDay:
-                            DateTime.now().subtract(const Duration(days: 365)),
-                        lastDay:
-                            DateTime.now().add(const Duration(days: 365 * 2)),
+                        firstDay: DateTime.utc(DateTime.now().year - 10, 1, 1),
+                        lastDay: DateTime.utc(DateTime.now().year + 10, 12, 31),
                         focusedDay: _focusedDay,
                         selectedDayPredicate: (day) {
                           return _selectedDays.contains(_normalizeDate(day));
@@ -123,39 +121,44 @@ class _BatchSchedulingDialogState extends State<BatchSchedulingDialog> {
                   Text(localizations.translate('shift_type'),
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: _selectedShiftTypeId,
+                  InputDecorator(
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    items: widget.shiftTypes.map((type) {
-                      return DropdownMenuItem<int>(
-                        value: type.id ?? 0,
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: type.colorValue,
-                                shape: BoxShape.circle,
-                              ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedShiftTypeId,
+                        isDense: true,
+                        items: widget.shiftTypes.map((type) {
+                          return DropdownMenuItem<int>(
+                            value: type.id ?? 0,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: type.colorValue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(type.name),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(type.name),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedShiftTypeId = value;
-                        });
-                      }
-                    },
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedShiftTypeId = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),
