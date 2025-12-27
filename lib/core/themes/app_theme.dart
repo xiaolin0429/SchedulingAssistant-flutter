@@ -32,7 +32,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.grey.withOpacity(0.08), width: 1),
+          side: BorderSide(color: Colors.grey.withValues(alpha: 0.08), width: 1),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       ),
@@ -79,7 +79,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       ),

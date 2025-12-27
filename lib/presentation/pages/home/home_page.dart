@@ -118,7 +118,7 @@ class _HomePageState extends State<HomePage> {
                               label: Text('${type.name} $count'),
                               onSelected: (_) {},
                               selected: false,
-                              backgroundColor: type.colorValue.withOpacity(0.1),
+                              backgroundColor: type.colorValue.withValues(alpha: 0.1),
                               labelStyle: TextStyle(
                                 color: type.colorValue,
                                 fontWeight: FontWeight.bold,
@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               shape: StadiumBorder(
                                 side: BorderSide(
-                                  color: type.colorValue.withOpacity(0.2),
+                                  color: type.colorValue.withValues(alpha: 0.2),
                                 ),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
@@ -164,7 +164,7 @@ class _HomePageState extends State<HomePage> {
                     color: Theme.of(context).scaffoldBackgroundColor,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -5),
                       ),
@@ -181,7 +181,7 @@ class _HomePageState extends State<HomePage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                         side: BorderSide(
-                          color: Theme.of(context).dividerColor.withOpacity(0.1),
+                          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Padding(
@@ -213,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: state.todayShift!.type.colorValue
-                                          .withOpacity(0.1),
+                                          .withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -237,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outline
-                                          .withOpacity(0.5)),
+                                          .withValues(alpha: 0.5)),
                                   const SizedBox(width: 12),
                                   Text(
                                     AppLocalizations.of(context)
