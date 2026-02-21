@@ -72,6 +72,7 @@
   "shift_time_label": "Time:",
   "note_label": "Note:",
   "add_note": "Add Note",
+  "edit_note": "Edit Note",
   "note_hint": "Enter note content",
   "add_shift": "Start Shift",
   "next_shift": "Next Shift",

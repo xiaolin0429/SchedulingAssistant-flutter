@@ -159,235 +159,299 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 // 今日排班卡片 (固定在底部)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 200,
                   ),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: SafeArea(
-                    top: false,
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      // 移除卡片默认阴影，与底部容器融为一体
-                      elevation: 0,
-                      color: Theme.of(context).cardTheme.color,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        side: BorderSide(
-                          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, -5),
                         ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min, // 确保高度自适应
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)
-                                      .translate('today_shift'),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
-                                ),
-                                // 如果有排班，显示简要信息
-                                if (state.todayShift != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: state.todayShift!.type.colorValue
-                                          .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      state.todayShift!.type.name,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: state.todayShift!.type.colorValue,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            if (state.todayShift == null)
-                              // 无排班状态 - 简化显示
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: SafeArea(
+                      top: false,
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        // 移除卡片默认阴影，与底部容器融为一体
+                        elevation: 0,
+                        color: Theme.of(context).cardTheme.color,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          side: BorderSide(
+                            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Icon(Icons.event_busy_rounded,
-                                      size: 24,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outline
-                                          .withValues(alpha: 0.5)),
-                                  const SizedBox(width: 12),
                                   Text(
                                     AppLocalizations.of(context)
-                                        .translate('no_shift'),
+                                        .translate('today_shift'),
                                     style: Theme.of(context)
                                         .textTheme
-                                        .bodyLarge
+                                        .titleMedium
                                         ?.copyWith(
+                                          fontWeight: FontWeight.bold,
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurfaceVariant,
                                         ),
                                   ),
-                                  const Spacer(),
-                                  FilledButton.icon(
-                                    onPressed: () {
-                                      if (state.availableShiftTypes != null) {
-                                        _showShiftTypeSelectionDialog(
-                                          context,
-                                          state.availableShiftTypes!,
-                                          state.selectedDate,
-                                        );
-                                      }
-                                    },
-                                    icon: const Icon(Icons.edit_calendar_rounded,
-                                        size: 18),
-                                    label: Text(
-                                        AppLocalizations.of(context)
-                                            .translate('add_shift'),
-                                        style: const TextStyle(fontSize: 13)),
-                                    style: FilledButton.styleFrom(
-                                        visualDensity: VisualDensity.compact),
-                                  ),
+                                  // 如果有排班，显示简要信息
+                                  if (state.todayShift != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: state.todayShift!.type.colorValue
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        state.todayShift!.type.name,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: state.todayShift!.type.colorValue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                 ],
-                              )
-                            else
-                              // 有排班状态 - 紧凑显示
-                              Column(
-                                children: [
-                                  if (state.todayShift!.startTime != null &&
-                                      state.todayShift!.endTime != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: Row(
+                              ),
+                              const SizedBox(height: 16),
+                              if (state.todayShift == null)
+                                // 无排班状态 - 简化显示
+                                SizedBox(
+                                  height: 120,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Row(
                                         children: [
-                                          Icon(
-                                            Icons.access_time_rounded,
-                                            size: 16,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 4),
+                                          Icon(Icons.event_busy_rounded,
+                                              size: 24,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outline
+                                                  .withValues(alpha: 0.5)),
+                                          const SizedBox(width: 12),
                                           Text(
-                                            '${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
+                                            AppLocalizations.of(context)
+                                                .translate('no_shift'),
                                             style: Theme.of(context)
                                                 .textTheme
-                                                .bodyMedium
+                                                .bodyLarge
                                                 ?.copyWith(
                                                   color: Theme.of(context)
                                                       .colorScheme
                                                       .onSurfaceVariant,
                                                 ),
                                           ),
+                                          const Spacer(),
+                                          FilledButton.icon(
+                                            onPressed: () {
+                                              if (state.availableShiftTypes != null) {
+                                                _showShiftTypeSelectionDialog(
+                                                  context,
+                                                  state.availableShiftTypes!,
+                                                  state.selectedDate,
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(Icons.edit_calendar_rounded,
+                                                size: 18),
+                                            label: Text(
+                                                AppLocalizations.of(context)
+                                                    .translate('add_shift'),
+                                                style: const TextStyle(fontSize: 13)),
+                                            style: FilledButton.styleFrom(
+                                                visualDensity: VisualDensity.compact),
+                                          ),
                                         ],
-                                      ),
-                                    ),
-                                  // 按钮行
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: FilledButton.tonalIcon(
-                                          onPressed: () {
-                                            _showNoteDialog(
-                                                context, state.todayShift!);
-                                          },
-                                          icon: const Icon(
-                                              Icons.note_add_outlined,
-                                              size: 18),
-                                          label: Text(
-                                            AppLocalizations.of(context)
-                                                .translate('add_note'),
-                                            style: const TextStyle(fontSize: 13),
-                                          ),
-                                          style: FilledButton.styleFrom(
-                                              visualDensity:
-                                                  VisualDensity.compact),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: FilledButton.icon(
-                                          onPressed: () {
-                                            if (state.availableShiftTypes !=
-                                                null) {
-                                              _showShiftTypeSelectionDialog(
-                                                context,
-                                                state.availableShiftTypes!,
-                                                state.selectedDate,
-                                              );
-                                            }
-                                          },
-                                          icon: const Icon(
-                                              Icons.edit_calendar_rounded,
-                                              size: 18),
-                                          label: Text(
-                                            AppLocalizations.of(context)
-                                                .translate('add_shift'),
-                                            style: const TextStyle(fontSize: 13),
-                                          ),
-                                          style: FilledButton.styleFrom(
-                                              visualDensity:
-                                                  VisualDensity.compact),
-                                        ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        context
-                                            .read<HomeBloc>()
-                                            .add(const StartBatchScheduling());
-                                        if (state.availableShiftTypes != null) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) =>
-                                                BatchSchedulingDialog(
-                                              shiftTypes:
-                                                  state.availableShiftTypes!,
-                                              initialDate: state.selectedDate,
+                                )
+                              else
+                                // 有排班状态 - 紧凑显示
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (state.todayShift!.startTime != null &&
+                                        state.todayShift!.endTime != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.access_time_rounded,
+                                              size: 16,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                             ),
-                                          );
-                                        }
-                                      },
-                                      icon: const Icon(Icons.date_range_rounded,
-                                          size: 18),
-                                      label: Text(
-                                          AppLocalizations.of(context)
-                                              .translate('batch_scheduling'),
-                                          style: const TextStyle(fontSize: 13)),
-                                      style: OutlinedButton.styleFrom(
-                                          visualDensity: VisualDensity.compact),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${state.todayShift!.startTime} - ${state.todayShift!.endTime}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    // 显示备注 - 使用可展开的容器
+                                    AnimatedSize(
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeInOut,
+                                      child: state.todayShift!.note?.isNotEmpty ?? false
+                                          ? Padding(
+                                              padding: const EdgeInsets.only(bottom: 12),
+                                              child: Container(
+                                                width: double.infinity,
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .secondaryContainer
+                                                      .withValues(alpha: 0.3),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.note_outlined,
+                                                      size: 16,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSecondaryContainer,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        state.todayShift!.note!,
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyMedium
+                                                            ?.copyWith(
+                                                              color: Theme.of(context)
+                                                                  .colorScheme
+                                                                  .onSecondaryContainer,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                          : const SizedBox.shrink(),
                                     ),
-                                  ),
-                                ],
-                              ),
-                          ],
+                                    // 按钮行
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: FilledButton.tonalIcon(
+                                            onPressed: () {
+                                              _showNoteDialog(
+                                                  context, state.todayShift!);
+                                            },
+                                            icon: const Icon(
+                                                Icons.note_add_outlined,
+                                                size: 18),
+                                            label: Text(
+                                              AppLocalizations.of(context)
+                                                  .translate(state.todayShift!.note?.isNotEmpty ?? false ? 'edit_note' : 'add_note'),
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                            style: FilledButton.styleFrom(
+                                                visualDensity:
+                                                    VisualDensity.compact),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: FilledButton.icon(
+                                            onPressed: () {
+                                              if (state.availableShiftTypes !=
+                                                  null) {
+                                                _showShiftTypeSelectionDialog(
+                                                  context,
+                                                  state.availableShiftTypes!,
+                                                  state.selectedDate,
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                                Icons.edit_calendar_rounded,
+                                                size: 18),
+                                            label: Text(
+                                              AppLocalizations.of(context)
+                                                  .translate('add_shift'),
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                            style: FilledButton.styleFrom(
+                                                visualDensity:
+                                                    VisualDensity.compact),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () {
+                                          context
+                                              .read<HomeBloc>()
+                                              .add(const StartBatchScheduling());
+                                          if (state.availableShiftTypes != null) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) =>
+                                                  BatchSchedulingDialog(
+                                                shiftTypes:
+                                                    state.availableShiftTypes!,
+                                                initialDate: state.selectedDate,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(Icons.date_range_rounded,
+                                            size: 18),
+                                        label: Text(
+                                            AppLocalizations.of(context)
+                                                .translate('batch_scheduling'),
+                                            style: const TextStyle(fontSize: 13)),
+                                        style: OutlinedButton.styleFrom(
+                                            visualDensity: VisualDensity.compact),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

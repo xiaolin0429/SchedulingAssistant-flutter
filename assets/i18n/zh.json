@@ -73,6 +73,7 @@
   "shift_time_label": "时间:",
   "note_label": "备注:",
   "add_note": "添加备注",
+  "edit_note": "编辑备注",
   "note_hint": "请输入备注内容",
   "add_shift": "开始排班",
   "next_shift": "下一班次",
